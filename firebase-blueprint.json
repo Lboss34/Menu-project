@@ -1,0 +1,104 @@
+{
+  "entities": {
+    "Customer": {
+      "title": "Customer",
+      "description": "Registered gourmet customers of the restaurant",
+      "type": "object",
+      "properties": {
+        "username": { "type": "string", "description": "Email address of the customer" },
+        "password": { "type": "string", "description": "Password for verification" },
+        "name": { "type": "string", "description": "Full display name" },
+        "avatarUrl": { "type": "string", "description": "Optional customer profile picture URL" },
+        "phone": { "type": "string", "description": "Optional default delivery contact number" },
+        "address": { "type": "string", "description": "Optional default delivery address" }
+      },
+      "required": ["username", "password", "name"]
+    },
+    "Employee": {
+      "title": "Employee",
+      "description": "Staff/executive chef members of the restaurant",
+      "type": "object",
+      "properties": {
+        "username": { "type": "string", "description": "Unique username of the employee" },
+        "password": { "type": "string", "description": "Password for verification" },
+        "name": { "type": "string", "description": "Employee full display name" }
+      },
+      "required": ["username", "password", "name"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Food order details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerName": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "notes": { "type": "string" },
+        "items": { "type": "array" },
+        "total": { "type": "number" },
+        "status": { "type": "string", "enum": ["Pending", "Preparing", "Out for Delivery", "Delivered"] },
+        "createdAt": { "type": "string" },
+        "paymentMethod": { "type": "string", "enum": ["Card", "Cash on Delivery"] },
+        "customerEmail": { "type": "string" }
+      },
+      "required": ["customerName", "phone", "address", "items", "total", "status", "createdAt", "paymentMethod"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Reviews of food orders placed",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "orderId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "rating": { "type": "integer" },
+        "comment": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "items": { "type": "array" }
+      },
+      "required": ["orderId", "customerName", "rating", "comment", "createdAt"]
+    },
+    "MenuItem": {
+      "title": "MenuItem",
+      "description": "Savory dishes displayed on the menu",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "category": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "rating": { "type": "number" },
+        "prepTime": { "type": "string" },
+        "spicy": { "type": "boolean" },
+        "vegan": { "type": "boolean" },
+        "popular": { "type": "boolean" }
+      },
+      "required": ["id", "name", "price", "category", "imageUrl", "prepTime"]
+    }
+  },
+  "firestore": {
+    "customers": {
+      "schema": "Customer",
+      "description": "Registered restaurant customers"
+    },
+    "employees": {
+      "schema": "Employee",
+      "description": "Staff/Executive chefs"
+    },
+    "orders": {
+      "schema": "Order",
+      "description": "All placed food orders"
+    },
+    "reviews": {
+      "schema": "Review",
+      "description": "Haute cuisine reviews"
+    },
+    "menuItems": {
+      "schema": "MenuItem",
+      "description": "Dishes menu database"
+    }
+  }
+}

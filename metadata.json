@@ -1,0 +1,6 @@
+{
+  "name": "Restaurant Ordering & Dashboard",
+  "description": "An ultra-premium, dark-mode first restaurant online ordering system paired with a real-time live admin order-tracking dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

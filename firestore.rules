@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Customers collection rules
+    match /customers/{customerEmail} {
+      allow read, write: if true;
+    }
+
+    // Employees collection rules
+    match /employees/{employeeUsername} {
+      allow read, write: if true;
+    }
+
+    // Orders collection rules
+    match /orders/{orderId} {
+      allow read, write: if true;
+    }
+
+    // Reviews collection rules
+    match /reviews/{reviewId} {
+      allow read, write: if true;
+    }
+
+    // MenuItems collection rules
+    match /menuItems/{menuItemId} {
+      allow read, write: if true;
+    }
+  }
+}

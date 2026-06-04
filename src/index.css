@@ -1,0 +1,95 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Outfit", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --color-gold-50: #fefcf3;
+  --color-gold-100: #fdf6df;
+  --color-gold-200: #fbeaaf;
+  --color-gold-300: #f8db6f;
+  --color-gold-400: #f5c43d;
+  --color-gold-500: #d4af37;
+  --color-gold-600: #b48e24;
+  --color-gold-700: #8c6a17;
+  --color-brand-orange: #FF6B00;
+  --color-brand-orange-hover: #FF8533;
+  --color-brand-orange-glow: rgba(255,107,0,0.4);
+}
+
+/* Base selection color */
+::selection {
+  background-color: #FF6B00;
+  color: #ffffff;
+}
+
+/* Custom scrollbar and ambient glowing backdrops */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #050505;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 107, 0, 0.15);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 107, 0, 0.4);
+}
+
+/* Luxury glow effects */
+.glow-orange {
+  box-shadow: 0 0 20px rgba(255, 107, 0, 0.2);
+}
+
+.glow-orange-strong {
+  box-shadow: 0 0 25px rgba(255, 107, 0, 0.45);
+}
+
+.glow-gold {
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.15);
+}
+
+.glow-gold-strong {
+  box-shadow: 0 0 25px rgba(212, 175, 55, 0.35);
+}
+
+.text-glow-orange {
+  text-shadow: 0 0 8px rgba(255, 107, 0, 0.5);
+}
+
+.text-glow-gold {
+  text-shadow: 0 0 8px rgba(212, 175, 55, 0.4);
+}
+
+.glassmorphism {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glassmorphism-light {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(255, 107, 0, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(255, 107, 0, 0.35);
+  }
+}
+
+.pulse-glow-orange {
+  animation: pulseGlow 3s infinite;
+}
+
