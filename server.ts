@@ -30,46 +30,52 @@ const passwordResetCodes = new Map<string, PasswordReset>();
 
 // Configure Nodemailer Transporter lazily
 function getMailTransporter() {
-  const host = process.env.SMTP_HOST?.trim() || 'smtp.gmail.com';
-  const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT.trim(), 10) : 587;
-  const secure = process.env.SMTP_SECURE?.trim() === 'true';
-  const user = process.env.SMTP_USER?.trim();
-  let pass = process.env.SMTP_PASS?.trim();
+  try {
+    const host = process.env.SMTP_HOST?.trim() || 'smtp.gmail.com';
+    const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT.trim(), 10) : 587;
+    const secure = process.env.SMTP_SECURE?.trim() === 'true';
+    const user = process.env.SMTP_USER?.trim();
+    let pass = process.env.SMTP_PASS?.trim();
 
-  // If using Gmail SMTP, clean the app password by removing any visual spaces (e.g., "aaaa bbbb cccc dddd" -> "aaaabbbbccccdddd")
-  if (host.toLowerCase().includes('gmail.com') && pass) {
-    pass = pass.replace(/\s+/g, '');
+    // If using Gmail SMTP, clean the app password by removing any visual spaces (e.g., "aaaa bbbb cccc dddd" -> "aaaabbbbccccdddd")
+    if (host.toLowerCase().includes('gmail.com') && pass) {
+      pass = pass.replace(/\s+/g, '');
+    }
+
+    if (!user || !pass) {
+      console.warn('[SMTP WARNING] SMTP_USER or SMTP_PASS missing. Falling back to email simulation mode.');
+      return null;
+    }
+
+    console.log(`[SMTP Diagnostic] Creating transporter with properties:
+      HOST: "${host}"
+      PORT: ${port}
+      SECURE: ${secure}
+      USER: "${user}"
+      PASS: ${pass ? '••••••••' + pass.slice(-4) : 'MISSING'}
+    `);
+
+    return nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      connectionTimeout: 4000, // 4 seconds timeout on connection
+      greetingTimeout: 4000,   // 4 seconds timeout on SMTP greeting
+      socketTimeout: 4000,     // 4 seconds timeout on inactivity
+      auth: {
+        user,
+        pass,
+      },
+      tls: {
+        rejectUnauthorized: false
+      },
+      debug: true,  // Automatically logs all SMTP handshake lines
+      logger: true  // Outputs communication to the node console log
+    });
+  } catch (err: any) {
+    console.warn('[SMTP Config Error] Failed to create transporter:', err.message);
+    return null;
   }
-
-  if (!user || !pass) {
-    throw new Error('إعدادات SMTP لبريد المرسل غير مكتملة في ملف البيئة (.env). يرجى التحقق من إعداد SMTP_USER و SMTP_PASS.');
-  }
-
-  console.log(`[SMTP Diagnostic] Creating transporter with properties:
-    HOST: "${host}"
-    PORT: ${port}
-    SECURE: ${secure}
-    USER: "${user}"
-    PASS: ${pass ? '••••••••' + pass.slice(-4) : 'MISSING'}
-  `);
-
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure,
-    connectionTimeout: 4000, // 4 seconds timeout on connection
-    greetingTimeout: 4000,   // 4 seconds timeout on SMTP greeting
-    socketTimeout: 4000,     // 4 seconds timeout on inactivity
-    auth: {
-      user,
-      pass,
-    },
-    tls: {
-      rejectUnauthorized: false
-    },
-    debug: true,  // Automatically logs all SMTP handshake lines
-    logger: true  // Outputs communication to the node console log
-  });
 }
 
 const SMTP_FROM = process.env.SMTP_FROM || (process.env.SMTP_USER ? `"L'Étoile" <${process.env.SMTP_USER.trim()}>` : "\"L'Étoile\" <no-reply@letoile.com>");
@@ -149,6 +155,9 @@ app.post('/api/auth/send-verification', async (req, res) => {
 
   try {
     const transporter = getMailTransporter();
+    if (!transporter) {
+      throw new Error('إعدادات SMTP غير مكتملة أو غير صالحة. تم تفعيل محاكاة كود التفعيل فورياً.');
+    }
     await transporter.sendMail({
       from: SMTP_FROM,
       to: normalizedEmail,
@@ -273,6 +282,9 @@ app.post('/api/auth/reset-password-request', async (req, res) => {
 
   try {
     const transporter = getMailTransporter();
+    if (!transporter) {
+      throw new Error('إعدادات SMTP غير مكتملة أو غير صالحة. تم تفعيل محاكاة كود استعادة الحساب فورياً.');
+    }
     await transporter.sendMail({
       from: SMTP_FROM,
       to: normalizedEmail,

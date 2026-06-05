@@ -144,9 +144,14 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
           
           let docSnap;
           try {
-            docSnap = await getDoc(docRef);
+            // Guarantee that Firestore lookup never hangs the UI by racing it against a fast 2.5s timeout
+            docSnap = await Promise.race([
+              getDoc(docRef),
+              new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Firestore check timed out')), 2500))
+            ]);
           } catch (dbErr) {
-            handleFirestoreError(dbErr, OperationType.GET, `customers/${username}`);
+            console.warn('[Firestore Non-blocking Warning] Customer verification check timed out or errored:', dbErr);
+            // We allow proceeding since the backend endpoint will also do security validation
           }
 
           if (docSnap && docSnap.exists()) {
@@ -155,7 +160,7 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
             return;
           }
         } catch (err) {
-          console.error(err);
+          console.error('[Signup Check Error]', err);
         }
 
         try {
