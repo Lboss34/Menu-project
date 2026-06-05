@@ -177,12 +177,7 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
           const data = await response.json();
           if (response.ok && data.success) {
             setIsVerifying(true);
-            if (data.simulated) {
-              setSuccessMsg(`⚠️ تم تفعيل محاكاة البريد بنجاح! رمز التفعيل الخاص بك هو: ${data.code}`);
-              setVerificationCode(data.code || '');
-            } else {
-              setSuccessMsg('تم إرسال رمز التحقق بنجاح لبريدك السحابي الحقيقي! يرجى التحقق من بريدك الإلكتروني.');
-            }
+            setSuccessMsg('تم إرسال رمز التحقق بنجاح لبريدك السحابي الحقيقي! يرجى التحقق من بريدك الإلكتروني لنسخ الكود.');
           } else {
             setErrorMsg(data.error || 'فشل إرسال كود التحقق لبريدك الإلكتروني، يرجى المحاولة لاحقاً');
           }
@@ -288,9 +283,6 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
       if (response.ok && data.success) {
         setSuccessMsg(data.message);
         setResetState('verify');
-        if (data.simulated && data.codeHint) {
-          setResetCode(data.codeHint);
-        }
       } else {
         setErrorMsg(data.error || 'عذراً، فشل إرسال رمز الأمان. تأكد من الاتصال.');
       }
@@ -699,9 +691,6 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
                         const data = await response.json();
                         if (response.ok && data.success) {
                           setSuccessMsg('✨ تم إعادة إرسال الرمز مجدداً إلى بريدك بنجاح!');
-                          if (data.simulated && data.codeHint) {
-                            setResetCode(data.codeHint);
-                          }
                         } else {
                           setErrorMsg(data.error);
                         }

@@ -7,7 +7,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json());
 
@@ -156,7 +156,9 @@ app.post('/api/auth/send-verification', async (req, res) => {
   try {
     const transporter = getMailTransporter();
     if (!transporter) {
-      throw new Error('إعدادات SMTP غير مكتملة أو غير صالحة. تم تفعيل محاكاة كود التفعيل فورياً.');
+      return res.status(500).json({ 
+        error: 'إعدادات البريد (SMTP_USER / SMTP_PASS) غير مكتملة في الخادوم. يرجى تهيئتها في الإعدادات.' 
+      });
     }
     await transporter.sendMail({
       from: SMTP_FROM,
@@ -167,15 +169,9 @@ app.post('/api/auth/send-verification', async (req, res) => {
     console.log(`[Email Verified] Sent real verification code [${code}] successfully to ${normalizedEmail}`);
     return res.json({ success: true, message: 'تم إرسال كود التحقق بنجاح لبريدك الإلكتروني الحقيقي!' });
   } catch (e: any) {
-    console.warn('SMTP Real-time error occurred during verification mail send:', e.message);
-    console.log('\n' + '='.repeat(60));
-    console.log(`🔑 [LOCAL SIMULATION SIGNUP CODE] [${code}] safely to ${normalizedEmail}`);
-    console.log('='.repeat(60) + '\n');
-    return res.json({ 
-      success: true, 
-      simulated: true, 
-      code,
-      message: 'تم تفعيل محاكاة البريد بنجاح بسبب حظر منافذ الإرسال الـ SMTP بالسيرفر. رمز التفعيل الحالي هو: ' + code 
+    console.error('SMTP Real-time error occurred during verification mail send:', e.message);
+    return res.status(500).json({
+      error: `فشل مخدّم الـ SMTP في إرسال كود التحقق الفعلي. الخطأ: ${e.message}. يرجى التحقق من صحة البريد وكلمة المرور الخاصة بالتطبيق وإعدادات الهوست SMTP_HOST وحفظها.`
     });
   }
 });
@@ -283,7 +279,9 @@ app.post('/api/auth/reset-password-request', async (req, res) => {
   try {
     const transporter = getMailTransporter();
     if (!transporter) {
-      throw new Error('إعدادات SMTP غير مكتملة أو غير صالحة. تم تفعيل محاكاة كود استعادة الحساب فورياً.');
+      return res.status(500).json({ 
+        error: 'إعدادات البريد (SMTP_USER / SMTP_PASS) غير مكتملة في الخادوم لتهيئة استعادة الحساب.' 
+      });
     }
     await transporter.sendMail({
       from: SMTP_FROM,
@@ -294,15 +292,9 @@ app.post('/api/auth/reset-password-request', async (req, res) => {
     console.log(`[Reset Password Request] Sent verification code [${code}] safely to ${normalizedEmail}`);
     return res.json({ success: true, message: 'تم إرسال كود استعادة الحساب إلى بريدك الإلكتروني بنجاح!' });
   } catch (e: any) {
-    console.warn('SMTP Reset code mailer skipped or errored:', e.message);
-    console.log('\n' + '='.repeat(60));
-    console.log(`🔑 [LOCAL SIMULATION RESET CODE] [${code}] to ${normalizedEmail}`);
-    console.log('='.repeat(60) + '\n');
-    return res.json({
-      success: true,
-      simulated: true,
-      message: 'تم إرسال الكود للبريد الإلكتروني (محاكاة تجريبية). الرمز الحالي هو: ' + code,
-      codeHint: code
+    console.error('SMTP Reset code mailer failed:', e.message);
+    return res.status(500).json({
+      error: `فشل مخدّم الـ SMTP في إرسال رمز استعادة كلمة المرور الفعلي. الخطأ: ${e.message}. يرجى التحقق من صحة معلومات SMTP في إعدادات البيئة.`
     });
   }
 });
