@@ -45,6 +45,14 @@ function getMailTransporter() {
     throw new Error('إعدادات SMTP لبريد المرسل غير مكتملة في ملف البيئة (.env). يرجى التحقق من إعداد SMTP_USER و SMTP_PASS.');
   }
 
+  console.log(`[SMTP Diagnostic] Creating transporter with properties:
+    HOST: "${host}"
+    PORT: ${port}
+    SECURE: ${secure}
+    USER: "${user}"
+    PASS: ${pass ? '••••••••' + pass.slice(-4) : 'MISSING'}
+  `);
+
   return nodemailer.createTransport({
     host,
     port,
@@ -55,11 +63,13 @@ function getMailTransporter() {
     },
     tls: {
       rejectUnauthorized: false
-    }
+    },
+    debug: true,  // Automatically logs all SMTP handshake lines
+    logger: true  // Outputs communication to the node console log
   });
 }
 
-const SMTP_FROM = process.env.SMTP_FROM || "\"L'Étoile\" <no-reply@letoile.com>";
+const SMTP_FROM = process.env.SMTP_FROM || (process.env.SMTP_USER ? `"L'Étoile" <${process.env.SMTP_USER.trim()}>` : "\"L'Étoile\" <no-reply@letoile.com>");
 
 // API 1: Health check
 app.get('/api/health', (req, res) => {
