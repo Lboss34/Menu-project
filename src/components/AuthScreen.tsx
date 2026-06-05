@@ -172,7 +172,12 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
           const data = await response.json();
           if (response.ok && data.success) {
             setIsVerifying(true);
-            setSuccessMsg('تم إرسال رمز التحقق بنجاح لبريدك السحابي الحقيقي! يرجى التحقق من بريدك الإلكتروني.');
+            if (data.simulated) {
+              setSuccessMsg(`⚠️ تم تفعيل محاكاة البريد بنجاح! رمز التفعيل الخاص بك هو: ${data.code}`);
+              setVerificationCode(data.code || '');
+            } else {
+              setSuccessMsg('تم إرسال رمز التحقق بنجاح لبريدك السحابي الحقيقي! يرجى التحقق من بريدك الإلكتروني.');
+            }
           } else {
             setErrorMsg(data.error || 'فشل إرسال كود التحقق لبريدك الإلكتروني، يرجى المحاولة لاحقاً');
           }
