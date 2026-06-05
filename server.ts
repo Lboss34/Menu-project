@@ -57,6 +57,9 @@ function getMailTransporter() {
     host,
     port,
     secure,
+    connectionTimeout: 4000, // 4 seconds timeout on connection
+    greetingTimeout: 4000,   // 4 seconds timeout on SMTP greeting
+    socketTimeout: 4000,     // 4 seconds timeout on inactivity
     auth: {
       user,
       pass,
