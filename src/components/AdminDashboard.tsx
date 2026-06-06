@@ -1028,8 +1028,9 @@ export default function AdminDashboard({
               <form onSubmit={handleSaveMenuItemSubmit} className="space-y-4 text-right overflow-y-auto max-h-[75vh] px-1">
                 {/* Name */}
                 <div>
-                  <label className="block text-[10px] font-mono text-gray-400 uppercase tracking-widest mb-1.5 font-bold">اسم الوجبة</label>
+                  <label htmlFor="menu-item-name" className="block text-[10px] font-mono text-gray-400 uppercase tracking-widest mb-1.5 font-bold">اسم الوجبة</label>
                   <input 
+                    id="menu-item-name"
                     type="text" 
                     required
                     value={itemName} 
@@ -1042,8 +1043,9 @@ export default function AdminDashboard({
                 {/* Price & Prep time row */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-mono text-gray-400 uppercase tracking-widest mb-1.5 font-bold">وقت التحضير المعتاد</label>
+                    <label htmlFor="menu-item-prep" className="block text-[10px] font-mono text-gray-400 uppercase tracking-widest mb-1.5 font-bold">وقت التحضير المعتاد</label>
                     <input 
+                      id="menu-item-prep"
                       type="text" 
                       required
                       value={itemPrepTime} 
@@ -1053,8 +1055,9 @@ export default function AdminDashboard({
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-mono text-gray-400 uppercase tracking-widest mb-1.5 font-bold">السعر المقدر بالدولار ($)</label>
+                    <label htmlFor="menu-item-price" className="block text-[10px] font-mono text-gray-400 uppercase tracking-widest mb-1.5 font-bold">السعر المقدر بالدولار ($)</label>
                     <input 
+                      id="menu-item-price"
                       type="number" 
                       step="0.01"
                       required
@@ -1067,8 +1070,9 @@ export default function AdminDashboard({
 
                 {/* Category Choose */}
                 <div>
-                  <label className="block text-[10px] font-mono text-gray-400 uppercase tracking-widest mb-1.5 font-bold">فئة المأكولات</label>
+                  <label htmlFor="menu-item-category" className="block text-[10px] font-mono text-gray-400 uppercase tracking-widest mb-1.5 font-bold">فئة المأكولات</label>
                   <select 
+                    id="menu-item-category"
                     value={itemCategory}
                     onChange={(e) => setItemCategory(e.target.value as FoodCategory)}
                     className="w-full bg-black/90 border border-white/10 p-2.5 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#FF6B00] text-center"
@@ -1083,8 +1087,9 @@ export default function AdminDashboard({
 
                 {/* Image URL text */}
                 <div>
-                  <label className="block text-[10px] font-mono text-gray-400 uppercase tracking-widest mb-1.5 font-bold">رابط صورة الوجبة (اختياري)</label>
+                  <label htmlFor="menu-item-image" className="block text-[10px] font-mono text-gray-400 uppercase tracking-widest mb-1.5 font-bold">رابط صورة الوجبة (اختياري)</label>
                   <input 
+                    id="menu-item-image"
                     type="url" 
                     value={itemImageUrl} 
                     onChange={(e) => setItemImageUrl(e.target.value)} 
@@ -1096,8 +1101,9 @@ export default function AdminDashboard({
 
                 {/* Rich Description */}
                 <div>
-                  <label className="block text-[10px] font-mono text-gray-400 uppercase tracking-widest mb-1.5 font-bold">وصف الوجبة الفاخرة</label>
+                  <label htmlFor="menu-item-desc" className="block text-[10px] font-mono text-gray-400 uppercase tracking-widest mb-1.5 font-bold">وصف الوجبة الفاخرة</label>
                   <textarea 
+                    id="menu-item-desc"
                     rows={3}
                     required
                     value={itemDescription} 
@@ -1109,8 +1115,9 @@ export default function AdminDashboard({
 
                 {/* Checkboxes popular / spicy */}
                 <div className="grid grid-cols-2 gap-4 pt-1 text-xs">
-                  <label className="flex items-center justify-end space-x-2 space-x-reverse text-gray-300 cursor-pointer">
+                  <label htmlFor="menu-item-spicy" className="flex items-center justify-end space-x-2 space-x-reverse text-gray-300 cursor-pointer">
                     <input 
+                      id="menu-item-spicy"
                       type="checkbox"
                       checked={itemSpicy}
                       onChange={(e) => setItemSpicy(e.target.checked)}
@@ -1119,8 +1126,9 @@ export default function AdminDashboard({
                     <span>الوجبة حارة ومتبلة (Spicy Map)</span>
                   </label>
 
-                  <label className="flex items-center justify-end space-x-2 space-x-reverse text-gray-300 cursor-pointer">
+                  <label htmlFor="menu-item-popular" className="flex items-center justify-end space-x-2 space-x-reverse text-gray-300 cursor-pointer">
                     <input 
+                      id="menu-item-popular"
                       type="checkbox"
                       checked={itemPopular}
                       onChange={(e) => setItemPopular(e.target.checked)}

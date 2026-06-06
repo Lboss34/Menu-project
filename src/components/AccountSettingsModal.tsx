@@ -267,7 +267,7 @@ export default function AccountSettingsModal({
               
               {/* Profile Avatar Picker presets */}
               <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-300 block">اختر صورتك الرمزية المفضلة:</label>
+                <span className="text-xs font-bold text-gray-300 block">اختر صورتك الرمزية المفضلة:</span>
                 <div className="grid grid-cols-6 gap-2">
                   {PRESET_AVATARS.map((av, index) => {
                     const isSelected = avatarUrl === av.url && !isCustomAvatar;
@@ -321,7 +321,9 @@ export default function AccountSettingsModal({
                       animate={{ opacity: 1, height: 'auto' }}
                       className="mt-2 flex items-center gap-2"
                     >
+                      <label htmlFor="custom-avatar-url" className="sr-only">رابط الصورة المخصص</label>
                       <input
+                        id="custom-avatar-url"
                         type="url"
                         value={customAvatarInput}
                         onChange={(e) => setCustomAvatarInput(e.target.value)}
@@ -342,11 +344,12 @@ export default function AccountSettingsModal({
 
               {/* Full Name field */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-300 block flex items-center gap-1">
+                <label htmlFor="settings-name" className="text-xs font-bold text-gray-300 block flex items-center gap-1">
                   <User className="w-3.5 h-3.5 text-[#FF6B00]" />
                   <span>الاسم الكامل الفاخر:</span>
                 </label>
                 <input
+                  id="settings-name"
                   required
                   type="text"
                   value={name}
@@ -358,11 +361,12 @@ export default function AccountSettingsModal({
 
               {/* Phone Field */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-300 block flex items-center gap-1">
+                <label htmlFor="settings-phone" className="text-xs font-bold text-gray-300 block flex items-center gap-1">
                   <Phone className="w-3.5 h-3.5 text-[#FF6B00]" />
                   <span>رقم الهاتف الافتراضي للتسليم:</span>
                 </label>
                 <input
+                  id="settings-phone"
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
@@ -375,11 +379,12 @@ export default function AccountSettingsModal({
 
               {/* Delivery Address Field */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-300 block flex items-center gap-1">
+                <label htmlFor="settings-address" className="text-xs font-bold text-gray-300 block flex items-center gap-1">
                   <MapPin className="w-3.5 h-3.5 text-[#FF6B00]" />
                   <span>عنوان التوصيل المفضل:</span>
                 </label>
                 <textarea
+                  id="settings-address"
                   rows={2}
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
@@ -391,11 +396,12 @@ export default function AccountSettingsModal({
 
               {/* Password update field */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-300 block flex items-center gap-1">
+                <label htmlFor="settings-password" className="text-xs font-bold text-gray-300 block flex items-center gap-1">
                   <Key className="w-3.5 h-3.5 text-[#FF6B00]" />
                   <span>تغيير كلمة المرور الجديدة (اختياري):</span>
                 </label>
                 <input
+                  id="settings-password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

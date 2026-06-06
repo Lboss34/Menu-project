@@ -16,7 +16,7 @@ function sanitizeLog(val: any): string {
   return str.replace(/[\r\n]/g, '_');
 }
 
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+const PORT = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json());
 
@@ -41,7 +41,7 @@ const passwordResetCodes = new Map<string, PasswordReset>();
 function getMailTransporter() {
   try {
     const host = process.env.SMTP_HOST?.trim() || 'smtp.gmail.com';
-    const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT.trim(), 10) : 587;
+    const port = process.env.SMTP_PORT ? Number.parseInt(process.env.SMTP_PORT.trim(), 10) : 587;
     const secure = process.env.SMTP_SECURE?.trim() === 'true';
     const user = process.env.SMTP_USER?.trim();
     let pass = process.env.SMTP_PASS?.trim();

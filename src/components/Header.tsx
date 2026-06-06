@@ -164,9 +164,11 @@ export default function Header({
                   <Settings className="w-3.5 h-3.5" />
                 </motion.button>
               )}
-              <div 
+              <button 
+                type="button"
                 className={`h-8 w-8 rounded-full border border-white/20 bg-white/5 overflow-hidden ${currentUser.role === 'customer' && onOpenSettings ? 'cursor-pointer hover:border-[#FF6B00]/50 transition-colors' : ''}`}
                 onClick={() => currentUser.role === 'customer' && onOpenSettings?.()}
+                aria-label="إعدادات الحساب"
               >
                 <img 
                   src={currentUser.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name)}&background=${currentUser.role === 'employee' ? 'D4AF37' : 'FF6B00'}&color=fff`} 
@@ -174,7 +176,7 @@ export default function Header({
                   className="w-full h-full object-cover animate-fade-in"
                   referrerPolicy="no-referrer"
                 />
-              </div>
+              </button>
             </div>
           )}
         </div>

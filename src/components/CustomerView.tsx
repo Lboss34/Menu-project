@@ -979,8 +979,9 @@ export default function CustomerView({
                       <div className="space-y-4 pt-2">
                         {/* Name */}
                         <div>
-                          <label className="block text-[10px] font-mono text-gray-400 uppercase tracking-wider mb-1.5 font-bold">Your Name *</label>
+                          <label htmlFor="cust-checkout-name" className="block text-[10px] font-mono text-gray-400 uppercase tracking-wider mb-1.5 font-bold">Your Name *</label>
                           <input 
+                            id="cust-checkout-name"
                             type="text" 
                             required
                             placeholder="John Doe"
@@ -992,8 +993,9 @@ export default function CustomerView({
 
                         {/* Email */}
                         <div>
-                          <label className="block text-[10px] font-mono text-gray-400 uppercase tracking-wider mb-1.5 font-bold">البريد الإلكتروني للإشعارات / Notification Email *</label>
+                          <label htmlFor="cust-checkout-email" className="block text-[10px] font-mono text-gray-400 uppercase tracking-wider mb-1.5 font-bold">البريد الإلكتروني للإشعارات / Notification Email *</label>
                           <input 
+                            id="cust-checkout-email"
                             type="email" 
                             required
                             placeholder="client@domain.com"
@@ -1005,8 +1007,9 @@ export default function CustomerView({
 
                         {/* Phone */}
                         <div>
-                          <label className="block text-[10px] font-mono text-gray-400 uppercase tracking-wider mb-1.5 font-bold">Phone Number *</label>
+                          <label htmlFor="cust-checkout-phone" className="block text-[10px] font-mono text-gray-400 uppercase tracking-wider mb-1.5 font-bold">Phone Number *</label>
                           <input 
+                            id="cust-checkout-phone"
                             type="tel" 
                             required
                             placeholder="+1 (555) 000-0000"
@@ -1018,8 +1021,9 @@ export default function CustomerView({
 
                         {/* Address */}
                         <div>
-                          <label className="block text-[10px] font-mono text-gray-400 uppercase tracking-wider mb-1.5 font-bold">Delivery Address *</label>
+                          <label htmlFor="cust-checkout-address" className="block text-[10px] font-mono text-gray-400 uppercase tracking-wider mb-1.5 font-bold">Delivery Address *</label>
                           <textarea 
+                            id="cust-checkout-address"
                             required
                             rows={2}
                             placeholder="Street, Penthouse Suite, Gate Code, City"
@@ -1031,8 +1035,9 @@ export default function CustomerView({
 
                         {/* Notes */}
                         <div>
-                          <label className="block text-[10px] font-mono text-gray-400 uppercase tracking-wider mb-1.5 font-medium">Chef Preparation Notes (Optional)</label>
+                          <label htmlFor="cust-checkout-notes" className="block text-[10px] font-mono text-gray-400 uppercase tracking-wider mb-1.5 font-medium">Chef Preparation Notes (Optional)</label>
                           <textarea 
+                            id="cust-checkout-notes"
                             rows={2}
                             placeholder="Allergies, door codes, delivery preferences..."
                             value={deliveryNotes}
@@ -1043,7 +1048,7 @@ export default function CustomerView({
 
                         {/* Payment Selection */}
                         <div>
-                          <label className="block text-[10px] font-mono text-gray-400 uppercase tracking-wider mb-1.5 font-bold">Secure Payment Method</label>
+                          <span className="block text-[10px] font-mono text-gray-400 uppercase tracking-wider mb-1.5 font-bold">Secure Payment Method</span>
                           <div className="grid grid-cols-2 gap-3">
                             <button
                                type="button"

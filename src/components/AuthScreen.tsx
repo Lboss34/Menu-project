@@ -552,10 +552,11 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
 
                 <form onSubmit={handleResetRequest} className="space-y-4">
                   <div className="space-y-1.5 font-sans">
-                    <label className="block text-[10px] font-mono text-white/50 uppercase tracking-wider font-bold text-right">البريد الإلكتروني المسجل</label>
+                    <label htmlFor="reset-email" className="block text-[10px] font-mono text-white/50 uppercase tracking-wider font-bold text-right">البريد الإلكتروني المسجل</label>
                     <div className="relative">
                       <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                       <input 
+                        id="reset-email"
                         type="email"
                         required
                         placeholder="example@domain.com"
@@ -638,10 +639,11 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
 
                 <form onSubmit={handleResetVerify} className="space-y-4">
                   <div className="space-y-1.5 font-sans">
-                    <label className="block text-[10px] font-mono text-white/50 uppercase tracking-wider font-bold text-right">رمز التحقق (6 أرقام)</label>
+                    <label htmlFor="reset-code" className="block text-[10px] font-mono text-white/50 uppercase tracking-wider font-bold text-right">رمز التحقق (6 أرقام)</label>
                     <div className="relative">
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                       <input 
+                        id="reset-code"
                         type="text"
                         maxLength={6}
                         placeholder="123456"
@@ -753,10 +755,11 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
 
                 <form onSubmit={handleResetPassword} className="space-y-4">
                   <div className="space-y-1.5 font-sans">
-                    <label className="block text-[10px] font-mono text-white/50 uppercase tracking-wider font-bold text-right">كلمة المرور الجديدة</label>
+                    <label htmlFor="new-password" className="block text-[10px] font-mono text-white/50 uppercase tracking-wider font-bold text-right">كلمة المرور الجديدة</label>
                     <div className="relative font-sans">
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                       <input 
+                        id="new-password"
                         type={showNewPassword ? "text" : "password"}
                         required
                         placeholder="••••••••"
@@ -831,10 +834,11 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
                 {/* Verification Form */}
                 <form onSubmit={handleVerifyCodeSubmit} className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="block text-[10px] font-mono text-white/50 uppercase tracking-wider font-bold">رمز التفعيل المكون من 6 أرقام</label>
+                    <label htmlFor="verification-code" className="block text-[10px] font-mono text-white/50 uppercase tracking-wider font-bold">رمز التفعيل المكون من 6 أرقام</label>
                     <div className="relative">
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                       <input 
+                        id="verification-code"
                         type="text"
                         maxLength={6}
                         placeholder="123456"
@@ -931,10 +935,11 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
                   {/* Full name on registration */}
                   {!isLogin && (
                     <div className="space-y-1.5">
-                      <label className="block text-[10px] font-mono text-white/50 uppercase tracking-wider font-bold">الاسم الكامل / Full Name</label>
+                      <label htmlFor="full-name" className="block text-[10px] font-mono text-white/50 uppercase tracking-wider font-bold">الاسم الكامل / Full Name</label>
                       <div className="relative">
                         <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                         <input 
+                          id="full-name"
                           type="text"
                           placeholder="الأستاذ / الشيف..."
                           value={fullName}
@@ -948,12 +953,13 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
 
                   {/* Username */}
                   <div className="space-y-1.5">
-                    <label className="block text-[10px] font-mono text-white/50 uppercase tracking-wider font-bold">
+                    <label htmlFor="auth-username" className="block text-[10px] font-mono text-white/50 uppercase tracking-wider font-bold">
                       {activePort === 'customer' ? 'البريد الإلكتروني / Email Address' : 'اسم المستخدم / Username'}
                     </label>
                     <div className="relative">
                       <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                       <input 
+                        id="auth-username"
                         type="text"
                         placeholder={activePort === 'customer' ? "example@domain.com" : "e.g. alex"}
                         value={username}
@@ -967,7 +973,7 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
                   {/* Password */}
                   <div className="space-y-1.5">
                     <div className="flex justify-between items-center">
-                      <label className="block text-[10px] font-mono text-white/50 uppercase tracking-wider font-bold">كلمة المرور / Password</label>
+                      <label htmlFor="auth-password" className="block text-[10px] font-mono text-white/50 uppercase tracking-wider font-bold">كلمة المرور / Password</label>
                       {isLogin && (
                         <button
                           type="button"
@@ -986,6 +992,7 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
                     <div className="relative">
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                       <input 
+                        id="auth-password"
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
                         value={password}
@@ -1007,12 +1014,13 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
                   {!isLogin && activePort === 'employee' && (
                     <div className="space-y-1.5">
                       <div className="flex justify-between items-center">
-                        <label className="block text-[10px] font-mono text-white/50 uppercase tracking-wider font-bold">رمز الموظف الأمني / Passcode</label>
+                        <label htmlFor="staff-passcode" className="block text-[10px] font-mono text-white/50 uppercase tracking-wider font-bold">رمز الموظف الأمني / Passcode</label>
                         <span className="text-[10px] text-amber-500/80">(Demo Code is `etoile123` or `1234`)</span>
                       </div>
                       <div className="relative">
                         <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                         <input 
+                          id="staff-passcode"
                           type="password"
                           placeholder="أدخل رمز توثيق الموظفين"
                           value={securityCode}
