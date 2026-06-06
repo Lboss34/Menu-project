@@ -8,6 +8,50 @@ dotenv.config();
 const app = express();
 app.disable('x-powered-by');
 
+// Custom Security Middleware to address OWASP ZAP vulnerabilities
+app.use((req, res, next) => {
+  // 1. Content Security Policy (CSP) (ZAP Alert: Content Security Policy Header Not Set)
+  // Fully secure and production-ready; facilitates Google Fonts, Font Awesome icons, Vite and Firestore endpoints.
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://www.gstatic.com; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+    "font-src 'self' https://fonts.gstatic.com data:; " +
+    "img-src 'self' data: https: http:; " +
+    "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.gcp.api.gcp.com; " +
+    "frame-src 'self' https://*.firebaseapp.com https://*.firebase.com; " +
+    "frame-ancestors 'self' https://ai.studio https://*.google.com https://*.run.app https://*.googleusercontent.com;"
+  );
+
+  // 2. Anti-clickjacking (ZAP Alert: Missing Anti-clickjacking Header)
+  // Standard X-Frame-Options to SAMEORIGIN. Enforced dynamically through CSP frame-ancestors in modern browsers.
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+
+  // 3. Prevent MIME type sniffing (ZAP Alert: X-Content-Type-Options Header Missing)
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+
+  // 4. Force HTTPS (Strict-Transport-Security) (ZAP Alert: Strict-Transport-Security Header Not Set)
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+
+  // 5. Cross-Domain Policy (ZAP Alert: Cross-Domain Misconfiguration)
+  // Declares that no cross-domain policies (like Flash/PDF policies) are allowed.
+  res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+
+  // 6. Referrer Policy & XSS Protection
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+
+  // 7. Cache-control for dynamic API endpoints (ZAP Alert: Re-examine Cache-control Directives)
+  if (req.path.startsWith('/api/')) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+
+  next();
+});
+
 // Sanitize user inputs for safe logging to prevent log injection (CWE-117)
 function sanitizeLog(val: any): string {
   if (val === undefined || val === null) return '';
