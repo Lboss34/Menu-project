@@ -6,8 +6,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  DollarSign, 
-  ShoppingBag, 
   Coins, 
   Search, 
   MapPin, 
@@ -50,6 +48,28 @@ interface AdminDashboardProps {
   onDeleteEmployee?: (username: string) => void;
 }
 
+const STATUS_TRANSLATIONS: Record<OrderStatus | 'All', string> = {
+  All: 'جميع الطلبات',
+  Pending: 'لم تُستلم',
+  Preparing: 'قيد الطبخ',
+  'Out for Delivery': 'قيد التوصيل',
+  Delivered: 'تم التوصيل'
+};
+
+const STATUS_ACTIVE_CLASSES: Record<OrderStatus, string> = {
+  Pending: 'bg-orange-600 text-white shadow-sm',
+  Preparing: 'bg-purple-600 text-white shadow-sm',
+  'Out for Delivery': 'bg-blue-600 text-white shadow-sm',
+  Delivered: 'bg-emerald-600 text-white shadow-sm'
+};
+
+const STATUS_SHORT_LABELS: Record<OrderStatus, string> = {
+  Pending: 'غير مستلم',
+  Preparing: 'طبخ',
+  'Out for Delivery': 'توصيل',
+  Delivered: 'تم التسليم'
+};
+
 export default function AdminDashboard({ 
   orders, 
   onUpdateOrderStatus, 
@@ -64,7 +84,7 @@ export default function AdminDashboard({
   employees = [],
   onDeleteCustomer,
   onDeleteEmployee
-}: AdminDashboardProps) {
+}: Readonly<AdminDashboardProps>) {
   const [activeTab, setActiveTab] = useState<'orders' | 'menu' | 'reviews' | 'users'>('orders');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'All'>('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -413,7 +433,7 @@ export default function AdminDashboard({
                         : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 border border-white/10'
                     }`}
                   >
-                    {status === 'All' ? 'جميع الطلبات' : status === 'Pending' ? 'لم تُستلم' : status === 'Preparing' ? 'قيد الطبخ' : status === 'Out for Delivery' ? 'قيد التوصيل' : 'تم التوصيل'}
+                    {STATUS_TRANSLATIONS[status as OrderStatus | 'All']}
                   </button>
                 ))}
               </div>
@@ -456,7 +476,6 @@ export default function AdminDashboard({
                       </tr>
                     ) : (
                       filteredOrders.map((order) => {
-                        const statusStyle = getStatusStyle(order.status);
                         return (
                           <motion.tr
                             layout
@@ -484,9 +503,9 @@ export default function AdminDashboard({
                             {/* Delicacies */}
                             <td className="py-4 px-4 text-right">
                               <div className="flex flex-wrap gap-1 justify-end max-w-[280px]">
-                                {order.items.map((item, idx) => (
+                                {order.items.map((item) => (
                                   <span 
-                                    key={idx} 
+                                    key={item.id || item.name} 
                                     className="bg-white/5 border border-white/10 text-gray-300 text-[10px] px-2 py-0.5 rounded"
                                   >
                                     {item.name} <strong className="text-[#FF6B00]">x{item.quantity}</strong>
@@ -511,10 +530,7 @@ export default function AdminDashboard({
                                       onClick={() => onUpdateOrderStatus(order.id, st)}
                                       className={`p-1.5 rounded-lg transition-all cursor-pointer ${
                                         order.status === st
-                                          ? st === 'Pending' ? 'bg-orange-600 text-white shadow-sm'
-                                            : st === 'Preparing' ? 'bg-purple-600 text-white shadow-sm'
-                                            : st === 'Out for Delivery' ? 'bg-blue-600 text-white shadow-sm'
-                                            : 'bg-emerald-600 text-white shadow-sm'
+                                          ? STATUS_ACTIVE_CLASSES[st]
                                           : 'text-gray-500 hover:text-white hover:bg-white/5'
                                       }`}
                                     >
@@ -963,7 +979,7 @@ export default function AdminDashboard({
                             : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
                         }`}
                       >
-                        {st === 'Pending' ? 'غير مستلم' : st === 'Preparing' ? 'طبخ' : st === 'Out for Delivery' ? 'توصيل' : 'تم التسليم'}
+                        {STATUS_SHORT_LABELS[st]}
                       </button>
                     ))}
                   </div>

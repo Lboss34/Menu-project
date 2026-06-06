@@ -66,7 +66,7 @@ export default function AccountSettingsModal({
   onClose, 
   currentUser, 
   onUpdateSuccess 
-}: AccountSettingsModalProps) {
+}: Readonly<AccountSettingsModalProps>) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
@@ -269,11 +269,11 @@ export default function AccountSettingsModal({
               <div className="space-y-2">
                 <span className="text-xs font-bold text-gray-300 block">اختر صورتك الرمزية المفضلة:</span>
                 <div className="grid grid-cols-6 gap-2">
-                  {PRESET_AVATARS.map((av, index) => {
+                  {PRESET_AVATARS.map((av) => {
                     const isSelected = avatarUrl === av.url && !isCustomAvatar;
                     return (
                       <motion.button
-                        key={index}
+                        key={av.url}
                         type="button"
                         whileHover={{ scale: 1.08 }}
                         whileTap={{ scale: 0.95 }}

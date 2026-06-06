@@ -314,18 +314,18 @@ export default function App() {
 
   // REAL-TIME NOTIFICATIONS TRIGGER (Detect status updates in customer-facing active orders)
   useEffect(() => {
-    if (!currentUser || currentUser.role !== 'customer' || prevOrders.length === 0) {
+    if (currentUser?.role !== 'customer' || prevOrders.length === 0) {
       setPrevOrders(orders);
       return;
     }
 
     orders.forEach((newOrder) => {
       // Check if it belongs to current customer
-      const isMyOrder = newOrder.customerName.toLowerCase() === currentUser.name.toLowerCase();
+      const isMyOrder = newOrder.customerName.toLowerCase() === currentUser?.name.toLowerCase();
       if (!isMyOrder) return;
 
       const oldOrder = prevOrders.find((o) => o.id === newOrder.id);
-      if (oldOrder && oldOrder.status !== newOrder.status) {
+      if (oldOrder && oldOrder?.status !== newOrder.status) {
         // Status updated! Compile translation message
         let titleAr = '';
         let descAr = '';

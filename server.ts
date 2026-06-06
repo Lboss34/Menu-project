@@ -1,6 +1,5 @@
 import express from 'express';
-import path from 'path';
-import { createServer as createViteServer } from 'vite';
+import path from 'node:path';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 
@@ -342,7 +341,7 @@ app.post('/api/auth/verify-reset-code', (req, res) => {
 app.post('/api/orders/notify-transit', async (req, res) => {
   const { order } = req.body;
 
-  if (!order || !order.id) {
+  if (!order?.id) {
     return res.status(400).json({ error: 'يرجى تزويد معلومات الطلب كاملة.' });
   }
 
@@ -488,7 +487,7 @@ app.post('/api/orders/notify-transit', async (req, res) => {
 app.post('/api/orders/notify-delivery', async (req, res) => {
   const { order } = req.body;
 
-  if (!order || !order.id) {
+  if (!order?.id) {
     return res.status(400).json({ error: 'يرجى تزويد معلومات الطلب كاملة.' });
   }
 
@@ -652,6 +651,10 @@ async function bootstrap() {
   });
 }
 
-bootstrap().catch((err) => {
-  console.error('[Bootstrap Error] Failed to start full-stack server:', err);
-});
+(async () => {
+  try {
+    await bootstrap();
+  } catch (err) {
+    console.error('[Bootstrap Error] Failed to start full-stack server:', err);
+  }
+})();

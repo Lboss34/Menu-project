@@ -369,8 +369,8 @@ export default function CustomerView({
               
               <div className="flex items-center space-x-3 justify-center sm:justify-start">
                 <div className="flex -space-x-3">
-                  {[...Array(4)].map((_, i) => (
-                    <div key={i} className="w-8 h-8 rounded-full border-2 border-[#07070a] overflow-hidden bg-gray-800">
+                  {['reviewer-a', 'reviewer-b', 'reviewer-c', 'reviewer-d'].map((reviewerId, i) => (
+                    <div key={reviewerId} className="w-8 h-8 rounded-full border-2 border-[#07070a] overflow-hidden bg-gray-800">
                       <img 
                         src={`https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&q=80&sig=${i}`} 
                         alt="User review" 
@@ -517,7 +517,6 @@ export default function CustomerView({
                         {steps.map((step, idx) => {
                           const isCompleted = idx < currentStepIdx;
                           const isActive = idx === currentStepIdx;
-                          const isFuture = idx > currentStepIdx;
 
                           let stepIcon = <Clock className="w-5 h-5" />;
                           if (idx === 1) stepIcon = <ChefHat className="w-5 h-5" />;
@@ -525,7 +524,7 @@ export default function CustomerView({
                           if (idx === 3) stepIcon = <CheckCircle className="w-5 h-5" />;
 
                           return (
-                            <div key={idx} className="flex md:flex-col items-center gap-4 md:gap-2 text-right md:text-center">
+                            <div key={step.status} className="flex md:flex-col items-center gap-4 md:gap-2 text-right md:text-center">
                               
                               {/* Circle Orb */}
                               <div className="relative">
@@ -577,8 +576,8 @@ export default function CustomerView({
                     {/* Summary details list */}
                     <div className="bg-white/[0.015] border border-white/5 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-3">
                       <div className="flex flex-wrap gap-2">
-                        {order.items.map((item, id) => (
-                          <span key={id} className="bg-white/5 border border-white/10 px-2 py-1 rounded text-[10.5px] text-gray-300">
+                        {order.items.map((item) => (
+                          <span key={item.id || item.name} className="bg-white/5 border border-white/10 px-2 py-1 rounded text-[10.5px] text-gray-300">
                             {item.name} <strong className="text-[#FF6B00]">x{item.quantity}</strong>
                           </span>
                         ))}
@@ -851,8 +850,8 @@ export default function CustomerView({
                   <div className="pt-4 mt-4 border-t border-white/5 space-y-2">
                     {rev.items && rev.items.length > 0 && (
                       <div className="flex flex-wrap gap-1 leading-none justify-end">
-                        {rev.items.map((it, idx) => (
-                          <span key={idx} className="text-[9.5px] bg-white/5 text-gray-400 px-1.5 py-0.5 rounded border border-white/5">
+                        {rev.items.map((it) => (
+                          <span key={it} className="text-[9.5px] bg-white/5 text-gray-400 px-1.5 py-0.5 rounded border border-white/5">
                             {it}
                           </span>
                         ))}
@@ -899,22 +898,30 @@ export default function CustomerView({
                 className="w-screen max-w-md bg-black/40 backdrop-blur-xl border-l border-white/10 shadow-2xl flex flex-col justify-between"
               >
                 {/* Header of Drawer */}
-                <div className="p-6 border-b border-white/10 flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <ShoppingBag className="w-5 h-5 text-[#FF6B00]" />
-                    <span className="font-display font-bold text-lg text-white">
-                      {isCheckoutStep ? 'Secure Checkout' : orderCompleted ? 'Order Acknowledged' : 'Your Order Selection'}
-                    </span>
-                  </div>
-                  {!orderCompleted && (
-                    <button
-                      onClick={() => setIsCartOpen(false)}
-                      className="p-2 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 transition-colors text-gray-400 hover:text-white cursor-pointer"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
+                {(() => {
+                  let pickerTitle = 'Your Order Selection';
+                  if (isCheckoutStep) pickerTitle = 'Secure Checkout';
+                  else if (orderCompleted) pickerTitle = 'Order Acknowledged';
+
+                  return (
+                    <div className="p-6 border-b border-white/10 flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <ShoppingBag className="w-5 h-5 text-[#FF6B00]" />
+                        <span className="font-display font-bold text-lg text-white">
+                          {pickerTitle}
+                        </span>
+                      </div>
+                      {!orderCompleted && (
+                        <button
+                          onClick={() => setIsCartOpen(false)}
+                          className="p-2 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 transition-colors text-gray-400 hover:text-white cursor-pointer"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Body Content */}
                 <div className="flex-grow overflow-y-auto px-6 py-4">

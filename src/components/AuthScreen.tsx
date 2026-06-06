@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Lock, 
@@ -31,7 +31,7 @@ interface AuthScreenProps {
   }) => void;
 }
 
-export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
+export default function AuthScreen({ onLoginSuccess }: Readonly<AuthScreenProps>) {
   const [activePort, setActivePort] = useState<'customer' | 'employee'>('customer');
   const [isLogin, setIsLogin] = useState(true);
   
@@ -96,12 +96,12 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
           handleFirestoreError(dbErr, OperationType.GET, `${collName}/${username}`);
         }
 
-        if (docSnap && docSnap.exists()) {
+        if (docSnap?.exists()) {
           const userData = docSnap.data();
           const { hashPassword } = await import('../lib/firebase');
           const hashedPassword = await hashPassword(password);
           
-          if (userData.password === password || userData.password === hashedPassword) {
+          if (userData?.password === password || userData?.password === hashedPassword) {
             setSuccessMsg('تم تسجيل الدخول بنجاح! في طريقنا للمطبخ...');
             setTimeout(() => {
               onLoginSuccess({
@@ -126,117 +126,115 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
         setErrorMsg('حدث خطأ أثناء الاتصال بالنظام السحابي للمطعم');
         setIsLoading(false);
       }
-    } else {
+    } else if (activePort === 'customer') {
       // SIGNUP PROCESS
-      if (activePort === 'customer') {
-        // Validate if username is indeed a valid email format
-        const isEmail = /\S+@\S+\.\S+/.test(username.trim());
-        if (!isEmail) {
-          setErrorMsg('فضلاً أدخل بريداً إلكترونياً صحيحاً لإتمام تفعيل حسابك (مثال: Client@example.com)');
+      // Validate if username is indeed a valid email format
+      const isEmail = /\S+@\S+\.\S+/.test(username.trim());
+      if (!isEmail) {
+        setErrorMsg('فضلاً أدخل بريداً إلكترونياً صحيحاً لإتمام تفعيل حسابك (مثال: Client@example.com)');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const { doc, getDoc } = await import('firebase/firestore');
+        const { db, handleFirestoreError, OperationType } = await import('../lib/firebase');
+        const docRef = doc(db, 'customers', username.toLowerCase().trim());
+        
+        let docSnap;
+        try {
+          // Guarantee that Firestore lookup never hangs the UI by racing it against a fast 2.5s timeout
+          docSnap = await Promise.race([
+            getDoc(docRef),
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Firestore check timed out')), 2500))
+          ]);
+        } catch (dbErr) {
+          console.warn('[Firestore Non-blocking Warning] Customer verification check timed out or errored:', dbErr);
+          // We allow proceeding since the backend endpoint will also do security validation
+        }
+
+        if (docSnap && docSnap.exists()) {
+          setErrorMsg('البريد الإلكتروني هذا مسجل مسبقاً، يرجى تسجيل الدخول أو استخدام بريد آخر');
+          setIsLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.error('[Signup Check Error]', err);
+      }
+
+      try {
+        const response = await fetch('/api/auth/send-verification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: username.toLowerCase().trim(),
+            fullName: fullName.trim(),
+            password
+          })
+        });
+
+        const data = await response.json();
+        if (response.ok && data.success) {
+          setIsVerifying(true);
+          setSuccessMsg('تم إرسال رمز التحقق بنجاح لبريدك السحابي الحقيقي! يرجى التحقق من بريدك الإلكتروني لنسخ الكود.');
+        } else {
+          setErrorMsg(data.error || 'فشل إرسال كود التحقق لبريدك الإلكتروني، يرجى المحاولة لاحقاً');
+        }
+      } catch (err) {
+        setErrorMsg('فشل الاتصال بالخادم لإرسال كود التحقق الفاخر. يرجى التحقق من الاتصال');
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      // EMPLOYEE SIGNUP (REAL-TIME SATELLITE CONNECTION)
+      try {
+        const { doc, getDoc, setDoc } = await import('firebase/firestore');
+        const { db, handleFirestoreError, OperationType, hashPassword } = await import('../lib/firebase');
+
+        if (securityCode !== 'etoile123' && securityCode !== '1234') {
+          setErrorMsg('رمز المرور الأمني للموظفين غير صحيح. يرجى توفير الرمز الصحيح لتوثيق صلاحياتك');
           setIsLoading(false);
           return;
         }
 
+        const docRef = doc(db, 'employees', username.toLowerCase().trim());
+        let docSnap;
         try {
-          const { doc, getDoc } = await import('firebase/firestore');
-          const { db, handleFirestoreError, OperationType } = await import('../lib/firebase');
-          const docRef = doc(db, 'customers', username.toLowerCase().trim());
-          
-          let docSnap;
-          try {
-            // Guarantee that Firestore lookup never hangs the UI by racing it against a fast 2.5s timeout
-            docSnap = await Promise.race([
-              getDoc(docRef),
-              new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Firestore check timed out')), 2500))
-            ]);
-          } catch (dbErr) {
-            console.warn('[Firestore Non-blocking Warning] Customer verification check timed out or errored:', dbErr);
-            // We allow proceeding since the backend endpoint will also do security validation
-          }
-
-          if (docSnap && docSnap.exists()) {
-            setErrorMsg('البريد الإلكتروني هذا مسجل مسبقاً، يرجى تسجيل الدخول أو استخدام بريد آخر');
-            setIsLoading(false);
-            return;
-          }
-        } catch (err) {
-          console.error('[Signup Check Error]', err);
+          docSnap = await getDoc(docRef);
+        } catch (dbErr) {
+          handleFirestoreError(dbErr, OperationType.GET, `employees/${username}`);
         }
 
+        if (docSnap && docSnap.exists()) {
+          setErrorMsg('اسم المستخدم هذا مسجل مسبقاً في النظام الفاخر، اختر اسماً آخر');
+          setIsLoading(false);
+          return;
+        }
+
+        const hashedPassword = await hashPassword(password);
+        const newUser = {
+          username: username.toLowerCase().trim(),
+          password: hashedPassword,
+          name: fullName.trim()
+        };
+
         try {
-          const response = await fetch('/api/auth/send-verification', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: username.toLowerCase().trim(),
-              fullName: fullName.trim(),
-              password
-            })
+          await setDoc(docRef, newUser);
+        } catch (dbErr) {
+          handleFirestoreError(dbErr, OperationType.WRITE, `employees/${newUser.username}`);
+        }
+
+        setSuccessMsg('تم إنشاء حساب الموظف بنجاح في قاعدة البيانات الحقيقية! جاري تسجيل دخولك...');
+        setTimeout(() => {
+          onLoginSuccess({
+            username: newUser.username,
+            name: newUser.name,
+            role: 'employee'
           });
-
-          const data = await response.json();
-          if (response.ok && data.success) {
-            setIsVerifying(true);
-            setSuccessMsg('تم إرسال رمز التحقق بنجاح لبريدك السحابي الحقيقي! يرجى التحقق من بريدك الإلكتروني لنسخ الكود.');
-          } else {
-            setErrorMsg(data.error || 'فشل إرسال كود التحقق لبريدك الإلكتروني، يرجى المحاولة لاحقاً');
-          }
-        } catch (err) {
-          setErrorMsg('فشل الاتصال بالخادم لإرسال كود التحقق الفاخر. يرجى التحقق من الاتصال');
-        } finally {
-          setIsLoading(false);
-        }
-      } else {
-        // EMPLOYEE SIGNUP (REAL-TIME SATELLITE CONNECTION)
-        try {
-          const { doc, getDoc, setDoc } = await import('firebase/firestore');
-          const { db, handleFirestoreError, OperationType, hashPassword } = await import('../lib/firebase');
-
-          if (securityCode !== 'etoile123' && securityCode !== '1234') {
-            setErrorMsg('رمز المرور الأمني للموظفين غير صحيح. يرجى توفير الرمز الصحيح لتوثيق صلاحياتك');
-            setIsLoading(false);
-            return;
-          }
-
-          const docRef = doc(db, 'employees', username.toLowerCase().trim());
-          let docSnap;
-          try {
-            docSnap = await getDoc(docRef);
-          } catch (dbErr) {
-            handleFirestoreError(dbErr, OperationType.GET, `employees/${username}`);
-          }
-
-          if (docSnap && docSnap.exists()) {
-            setErrorMsg('اسم المستخدم هذا مسجل مسبقاً في النظام الفاخر، اختر اسماً آخر');
-            setIsLoading(false);
-            return;
-          }
-
-          const hashedPassword = await hashPassword(password);
-          const newUser = {
-            username: username.toLowerCase().trim(),
-            password: hashedPassword,
-            name: fullName.trim()
-          };
-
-          try {
-            await setDoc(docRef, newUser);
-          } catch (dbErr) {
-            handleFirestoreError(dbErr, OperationType.WRITE, `employees/${newUser.username}`);
-          }
-
-          setSuccessMsg('تم إنشاء حساب الموظف بنجاح في قاعدة البيانات الحقيقية! جاري تسجيل دخولك...');
-          setTimeout(() => {
-            onLoginSuccess({
-              username: newUser.username,
-              name: newUser.name,
-              role: 'employee'
-            });
-          }, 1200);
-        } catch (err: any) {
-          setErrorMsg('حدث خطأ أثناء كتابة ملف الموظف في النظام السحابي');
-          setIsLoading(false);
-        }
+        }, 1200);
+      } catch (err: any) {
+        setErrorMsg('حدث خطأ أثناء كتابة ملف الموظف في النظام السحابي');
+        setIsLoading(false);
       }
     }
   };
@@ -430,6 +428,13 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
       setIsLoading(false);
     }
   };
+
+  let submitLabel = 'إنشاء حساب جديد كلياً';
+  if (isLoading) {
+    submitLabel = 'جاري التحقق من أوراق الاعتماد...';
+  } else if (isLogin) {
+    submitLabel = 'ولوج آمن للمخدّم';
+  }
 
   return (
     <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4 relative overflow-hidden select-none font-sans">
@@ -1042,7 +1047,7 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
                         : 'bg-amber-600 hover:bg-amber-500'
                     }`}
                   >
-                    <span>{isLoading ? 'جاري التحقق من أوراق الاعتماد...' : isLogin ? 'ولوج آمن للمخدّم' : 'إنشاء حساب جديد كلياً'}</span>
+                    <span>{submitLabel}</span>
                     {!isLoading && <ArrowRight className="w-4 h-4" />}
                   </button>
                 </form>
