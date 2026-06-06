@@ -29,6 +29,7 @@ RUN npm install --omit=dev
 
 # Copy compiled assets from output folder (contains front-end dist and dist/server.cjs)
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/firebase-applet-config.json ./firebase-applet-config.json
 
 # Expose the default port (Back4App default is 8080)
 EXPOSE 8080

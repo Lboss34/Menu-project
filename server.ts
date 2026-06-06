@@ -8,13 +8,38 @@ import { getFirestore, collection, getDocs, doc, setDoc } from 'firebase/firesto
 
 dotenv.config();
 
-// Read config dynamically to avoid compile time failures or static resolution issues
-const fbConfigPath = path.join(process.cwd(), 'firebase-applet-config.json');
-const fbConfig = JSON.parse(fs.readFileSync(fbConfigPath, 'utf8'));
+// Lazy Firestore initialization to ensure the app never crashes at startup in production
+let dbInstance: any = null;
 
-// Initialize Firebase App
-const firebaseApp = initializeApp(fbConfig);
-const db = getFirestore(firebaseApp, fbConfig.firestoreDatabaseId || '(default)');
+function getDb() {
+  if (dbInstance) return dbInstance;
+
+  try {
+    const fbConfigPath = path.join(process.cwd(), 'firebase-applet-config.json');
+    let fbConfig: any = {};
+    if (fs.existsSync(fbConfigPath)) {
+      fbConfig = JSON.parse(fs.readFileSync(fbConfigPath, 'utf8'));
+    } else {
+      console.warn('Warning: firebase-applet-config.json not found. Trying fallback environment variable configurations.');
+      fbConfig = {
+        apiKey: process.env.FIREBASE_API_KEY || "placeholder_api_key",
+        authDomain: process.env.FIREBASE_AUTH_DOMAIN || "placeholder_auth_domain",
+        projectId: process.env.FIREBASE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT || "placeholder_project_id",
+        storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "placeholder_storage_bucket",
+        messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "placeholder_sender_id",
+        appId: process.env.FIREBASE_APP_ID || "placeholder_app_id",
+        firestoreDatabaseId: process.env.FIREBASE_DATABASE_ID || "(default)"
+      };
+    }
+
+    const firebaseApp = initializeApp(fbConfig);
+    dbInstance = getFirestore(firebaseApp, fbConfig.firestoreDatabaseId || '(default)');
+    return dbInstance;
+  } catch (error) {
+    console.error('Failed to initialize Firestore database lazily:', error);
+    throw error;
+  }
+}
 
 const app = express();
 app.disable('x-powered-by');
@@ -402,7 +427,7 @@ app.post('/api/orders/place', async (req, res) => {
     }
 
     // 1. Fetch official menu items from Firestore to calculate authentic prices
-    const menuItemsCol = collection(db, 'menuItems');
+    const menuItemsCol = collection(getDb(), 'menuItems');
     const menuSnap = await getDocs(menuItemsCol);
     const menuCatalog = new Map<string, any>();
     menuSnap.forEach((docSnap) => {
@@ -462,7 +487,7 @@ app.post('/api/orders/place', async (req, res) => {
     };
 
     // 5. Save securely to Firestore using server authorization
-    await setDoc(doc(db, 'orders', orderId), newOrder);
+    await setDoc(doc(getDb(), 'orders', orderId), newOrder);
 
     console.log(`[Secure Order checkout] Order ${orderId} placed successfully by customer ${sanitizeLog(customerName)}. Total: $${total.toFixed(2)}`);
     return res.json({ success: true, orderId, order: newOrder });
