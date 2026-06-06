@@ -211,7 +211,9 @@ export default function App() {
     async function seedDemoAccounts() {
       try {
         const { getDoc, doc, setDoc, updateDoc } = await import('firebase/firestore');
-        const { db } = await import('./lib/firebase');
+        const { db, hashPassword } = await import('./lib/firebase');
+
+        const defaultHash = await hashPassword('123');
 
         // Seed customer 'alex'
         const custDocRef = doc(db, 'customers', 'alex');
@@ -219,11 +221,11 @@ export default function App() {
         if (!custSnap.exists()) {
           await setDoc(custDocRef, {
             username: 'alex',
-            password: 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3',
+            password: defaultHash,
             name: 'Alex Customer'
           });
         } else if (custSnap.data()?.password === '123') {
-          await updateDoc(custDocRef, { password: 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3' });
+          await updateDoc(custDocRef, { password: defaultHash });
         }
 
         // Seed employee 'staff'
@@ -232,11 +234,11 @@ export default function App() {
         if (!staffSnap.exists()) {
           await setDoc(staffDocRef, {
             username: 'staff',
-            password: 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3',
+            password: defaultHash,
             name: 'Alex Chef'
           });
         } else if (staffSnap.data()?.password === '123') {
-          await updateDoc(staffDocRef, { password: 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3' });
+          await updateDoc(staffDocRef, { password: defaultHash });
         }
 
         // Seed employee 'admin'
@@ -245,11 +247,11 @@ export default function App() {
         if (!adminSnap.exists()) {
           await setDoc(adminDocRef, {
             username: 'admin',
-            password: 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3',
+            password: defaultHash,
             name: 'Master Chef Chef'
           });
         } else if (adminSnap.data()?.password === '123') {
-          await updateDoc(adminDocRef, { password: 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3' });
+          await updateDoc(adminDocRef, { password: defaultHash });
         }
       } catch (err) {
         console.warn('Non-blocking: Failed to seed or secure demo accounts in Firestore:', err);

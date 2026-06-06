@@ -7,6 +7,15 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const app = express();
+app.disable('x-powered-by');
+
+// Sanitize user inputs for safe logging to prevent log injection (CWE-117)
+function sanitizeLog(val: any): string {
+  if (val === undefined || val === null) return '';
+  const str = typeof val === 'string' ? val : String(val);
+  return str.replace(/[\r\n]/g, '_');
+}
+
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json());
@@ -166,7 +175,7 @@ app.post('/api/auth/send-verification', async (req, res) => {
       subject: emailSubject,
       html: htmlContent,
     });
-    console.log(`[Email Verified] Sent real verification code [${code}] successfully to ${normalizedEmail}`);
+    console.log(`[Email Verified] Sent real verification code [${sanitizeLog(code)}] successfully to ${sanitizeLog(normalizedEmail)}`);
     return res.json({ success: true, message: 'تم إرسال كود التحقق بنجاح لبريدك الإلكتروني الحقيقي!' });
   } catch (e: any) {
     console.error('SMTP Real-time error occurred during verification mail send:', e.message);
@@ -289,7 +298,7 @@ app.post('/api/auth/reset-password-request', async (req, res) => {
       subject: emailSubject,
       html: htmlContent,
     });
-    console.log(`[Reset Password Request] Sent verification code [${code}] safely to ${normalizedEmail}`);
+    console.log(`[Reset Password Request] Sent verification code [${sanitizeLog(code)}] safely to ${sanitizeLog(normalizedEmail)}`);
     return res.json({ success: true, message: 'تم إرسال كود استعادة الحساب إلى بريدك الإلكتروني بنجاح!' });
   } catch (e: any) {
     console.error('SMTP Reset code mailer failed:', e.message);
@@ -340,7 +349,7 @@ app.post('/api/orders/notify-transit', async (req, res) => {
   const emailTo = order.customerEmail || process.env.SMTP_USER; // fallback to mail system user if order lacks email
 
   if (!emailTo) {
-    console.warn(`[Transit Email System] No recipient email specified for order ${order.id}`);
+    console.warn(`[Transit Email System] No recipient email specified for order ${sanitizeLog(order?.id)}`);
     return res.json({ success: true, message: 'Simulated OK (no email provided)' });
   }
 
@@ -451,7 +460,7 @@ app.post('/api/orders/notify-transit', async (req, res) => {
         subject: emailSubject,
         html: htmlContent,
       });
-      console.log(`[Order Transit Email] Success: Sent status notification email for order ${order.id} directly to ${emailTo}`);
+      console.log(`[Order Transit Email] Success: Sent status notification email for order ${sanitizeLog(order?.id)} directly to ${sanitizeLog(emailTo)}`);
       return res.json({ success: true, message: 'Email sent successfully via SMTP' });
     } catch (e: any) {
       console.error('SMTP Mail error occurred on transit notification:', e.message);
@@ -461,10 +470,10 @@ app.post('/api/orders/notify-transit', async (req, res) => {
     // Beautiful simulation logger
     console.log('\n' + '='.repeat(60));
     console.log(`✨ [SIMULATED EMAIL TRANSIT] SIMULATING TRANSIT STATUS EMAIL`);
-    console.log(`   To: ${emailTo}`);
-    console.log(`   Order Ref: ${order.id}`);
-    console.log(`   Subject: ${emailSubject}`);
-    console.log(`   Content preview: Order ${order.id} is now on the way to ${order.address}`);
+    console.log(`   To: ${sanitizeLog(emailTo)}`);
+    console.log(`   Order Ref: ${sanitizeLog(order?.id)}`);
+    console.log(`   Subject: ${sanitizeLog(emailSubject)}`);
+    console.log(`   Content preview: Order ${sanitizeLog(order?.id)} is now on the way to ${sanitizeLog(order?.address)}`);
     console.log('='.repeat(60) + '\n');
 
     return res.json({
@@ -486,7 +495,7 @@ app.post('/api/orders/notify-delivery', async (req, res) => {
   const emailTo = order.customerEmail || process.env.SMTP_USER; // fallback to mail system user if order lacks email
 
   if (!emailTo) {
-    console.warn(`[Delivery Email System] No recipient email specified for order ${order.id}`);
+    console.warn(`[Delivery Email System] No recipient email specified for order ${sanitizeLog(order?.id)}`);
     return res.json({ success: true, message: 'Simulated OK (no email provided)' });
   }
 
@@ -597,7 +606,7 @@ app.post('/api/orders/notify-delivery', async (req, res) => {
         subject: emailSubject,
         html: htmlContent,
       });
-      console.log(`[Order Delivered Email] Success: Sent status notification email for order ${order.id} directly to ${emailTo}`);
+      console.log(`[Order Delivered Email] Success: Sent status notification email for order ${sanitizeLog(order?.id)} directly to ${sanitizeLog(emailTo)}`);
       return res.json({ success: true, message: 'Email sent successfully via SMTP' });
     } catch (e: any) {
       console.error('SMTP Mail error occurred on delivery notification:', e.message);
@@ -607,10 +616,10 @@ app.post('/api/orders/notify-delivery', async (req, res) => {
     // Beautiful simulation logger
     console.log('\n' + '='.repeat(60));
     console.log(`✨ [SIMULATED EMAIL DELIVERY] SIMULATING DELIVERY STATUS EMAIL`);
-    console.log(`   To: ${emailTo}`);
-    console.log(`   Order Ref: ${order.id}`);
-    console.log(`   Subject: ${emailSubject}`);
-    console.log(`   Content preview: Successful delivery of ${order.items.length} dishes for a total of $${order.total.toFixed(2)}`);
+    console.log(`   To: ${sanitizeLog(emailTo)}`);
+    console.log(`   Order Ref: ${sanitizeLog(order?.id)}`);
+    console.log(`   Subject: ${sanitizeLog(emailSubject)}`);
+    console.log(`   Content preview: Successful delivery of ${order?.items?.length} dishes for a total of $${order?.total?.toFixed(2)}`);
     console.log('='.repeat(60) + '\n');
 
     return res.json({
