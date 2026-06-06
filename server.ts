@@ -619,7 +619,7 @@ app.post('/api/orders/notify-delivery', async (req, res) => {
     console.log(`   To: ${sanitizeLog(emailTo)}`);
     console.log(`   Order Ref: ${sanitizeLog(order?.id)}`);
     console.log(`   Subject: ${sanitizeLog(emailSubject)}`);
-    console.log(`   Content preview: Successful delivery of ${order?.items?.length} dishes for a total of $${order?.total?.toFixed(2)}`);
+    console.log(`   Content preview: Successful delivery of ${sanitizeLog(order?.items?.length)} dishes for a total of $${sanitizeLog(order?.total?.toFixed(2))}`);
     console.log('='.repeat(60) + '\n');
 
     return res.json({
