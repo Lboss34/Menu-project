@@ -262,6 +262,10 @@ export default function App() {
 
   // 4. Live subscribe to customers collection in Firestore
   useEffect(() => {
+    if (currentUser?.role !== 'employee') {
+      setDbCustomers([]);
+      return;
+    }
     let unsubscribe = () => {};
     async function initCollection() {
       try {
@@ -284,10 +288,14 @@ export default function App() {
     }
     initCollection();
     return () => unsubscribe();
-  }, []);
+  }, [currentUser?.role]);
 
   // 5. Live subscribe to employees collection in Firestore
   useEffect(() => {
+    if (currentUser?.role !== 'employee') {
+      setDbEmployees([]);
+      return;
+    }
     let unsubscribe = () => {};
     async function initCollection() {
       try {
@@ -310,7 +318,7 @@ export default function App() {
     }
     initCollection();
     return () => unsubscribe();
-  }, []);
+  }, [currentUser?.role]);
 
   // REAL-TIME NOTIFICATIONS TRIGGER (Detect status updates in customer-facing active orders)
   useEffect(() => {

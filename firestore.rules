@@ -8,32 +8,118 @@ service cloud.firestore {
 
     // Helper functions
     function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-\\.\\@\\+\\%]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Customer Validation Helper
+    function isValidCustomer(data) {
+      return data.username is string && data.username.size() > 0 && data.username.size() <= 100
+        && data.password is string && data.password.size() > 0 && data.password.size() <= 200
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 150
+        && (!data.keys().contains('phone') || (data.phone is string && data.phone.size() <= 30))
+        && (!data.keys().contains('address') || (data.address is string && data.address.size() <= 300))
+        && (!data.keys().contains('avatarUrl') || (data.avatarUrl is string && data.avatarUrl.size() <= 500));
+    }
+
+    // Employee Validation Helper
+    function isValidEmployee(data) {
+      return data.username is string && data.username.size() > 0 && data.username.size() <= 100
+        && data.password is string && data.password.size() > 0 && data.password.size() <= 200
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 150;
+    }
+
+    // Order Validation Helper
+    function isValidOrder(data) {
+      return data.customerName is string && data.customerName.size() > 0 && data.customerName.size() <= 150
+        && data.phone is string && data.phone.size() > 0 && data.phone.size() <= 30
+        && data.address is string && data.address.size() > 0 && data.address.size() <= 300
+        && data.total is number && data.total >= 0 && data.total <= 100000
+        && data.status is string && (data.status == 'Pending' || data.status == 'Preparing' || data.status == 'Out for Delivery' || data.status == 'Delivered')
+        && data.paymentMethod is string && (data.paymentMethod == 'Card' || data.paymentMethod == 'Cash on Delivery')
+        && (!data.keys().contains('notes') || (data.notes is string && data.notes.size() <= 500))
+        && (!data.keys().contains('customerEmail') || (data.customerEmail is string && data.customerEmail.size() <= 100))
+        && (!data.keys().contains('id') || (data.id is string && data.id.size() <= 128))
+        && (!data.keys().contains('createdAt') || (data.createdAt is string && data.createdAt.size() <= 128))
+        && data.items is list && data.items.size() <= 100;
+    }
+
+    // Review Validation Helper
+    function isValidReview(data) {
+      return data.orderId is string && data.orderId.size() > 0 && data.orderId.size() <= 100
+        && data.customerName is string && data.customerName.size() > 0 && data.customerName.size() <= 150
+        && data.rating is int && data.rating >= 1 && data.rating <= 5
+        && data.comment is string && data.comment.size() >= 0 && data.comment.size() <= 1000
+        && (!data.keys().contains('createdAt') || (data.createdAt is string && data.createdAt.size() <= 128))
+        && (!data.keys().contains('id') || (data.id is string && data.id.size() <= 128))
+        && (!data.keys().contains('items') || (data.items is list && data.items.size() <= 100));
+    }
+
+    // MenuItem Validation Helper
+    function isValidMenuItem(data) {
+      return data.id is string && data.id.size() > 0 && data.id.size() <= 100
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 150
+        && data.price is number && data.price >= 0 && data.price <= 10000
+        && data.category is string && data.category.size() > 0 && data.category.size() <= 100
+        && data.imageUrl is string && data.imageUrl.size() > 0 && data.imageUrl.size() <= 1000
+        && data.prepTime is string && data.prepTime.size() > 0 && data.prepTime.size() <= 50
+        && data.spicy is bool
+        && data.vegan is bool
+        && data.popular is bool
+        && (!data.keys().contains('description') || (data.description is string && data.description.size() <= 1000))
+        && (!data.keys().contains('rating') || (data.rating is number));
     }
 
     // Customers collection rules
     match /customers/{customerEmail} {
-      allow read, write: if true;
+      allow get: if isValidId(customerEmail);
+      allow list: if true;
+      allow create: if isValidId(customerEmail) && isValidCustomer(incoming()) && incoming().username.lower() == customerEmail.lower();
+      allow update: if isValidId(customerEmail) && isValidCustomer(incoming()) && incoming().username.lower() == existing().username.lower();
+      allow delete: if isValidId(customerEmail);
     }
 
     // Employees collection rules
     match /employees/{employeeUsername} {
-      allow read, write: if true;
+      allow get: if isValidId(employeeUsername);
+      allow list: if true;
+      allow create: if isValidId(employeeUsername) && isValidEmployee(incoming()) && incoming().username.lower() == employeeUsername.lower();
+      allow update: if isValidId(employeeUsername) && isValidEmployee(incoming()) && incoming().username.lower() == existing().username.lower();
+      allow delete: if isValidId(employeeUsername);
     }
 
     // Orders collection rules
     match /orders/{orderId} {
-      allow read, write: if true;
+      allow get: if isValidId(orderId);
+      allow list: if true;
+      allow create: if isValidId(orderId) && isValidOrder(incoming());
+      allow update: if isValidId(orderId) && isValidOrder(incoming());
+      allow delete: if isValidId(orderId);
     }
 
     // Reviews collection rules
     match /reviews/{reviewId} {
-      allow read, write: if true;
+      allow get: if isValidId(reviewId);
+      allow list: if true;
+      allow create: if isValidId(reviewId) && isValidReview(incoming());
+      allow update: if isValidId(reviewId) && isValidReview(incoming());
+      allow delete: if isValidId(reviewId);
     }
 
     // MenuItems collection rules
     match /menuItems/{menuItemId} {
-      allow read, write: if true;
+      allow get: if isValidId(menuItemId);
+      allow list: if true;
+      allow create: if isValidId(menuItemId) && isValidMenuItem(incoming());
+      allow update: if isValidId(menuItemId) && isValidMenuItem(incoming());
+      allow delete: if isValidId(menuItemId);
     }
   }
 }
