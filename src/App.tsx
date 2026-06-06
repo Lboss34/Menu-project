@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { HashRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Header from './components/Header';
 import CustomerView from './components/CustomerView';
 import AdminDashboard from './components/AdminDashboard';
@@ -20,9 +21,16 @@ interface LiveToast {
   status: OrderStatus;
 }
 
-export default function App() {
-  // Current View: 'customer' or 'admin'
-  const [currentView, setView] = useState<'customer' | 'admin'>('customer');
+function AppContent() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Derive currentView from active route URL path dynamically to prevent bypass/manipulation
+  const currentView = location.pathname.startsWith('/admin') ? 'admin' : 'customer';
+
+  const setView = (view: 'customer' | 'admin') => {
+    navigate(view === 'admin' ? '/admin' : '/');
+  };
   
   // Real-time Auth User Session
   const [currentUser, setCurrentUser] = useState<{ 
@@ -77,10 +85,12 @@ export default function App() {
       if (currentUser) {
         localStorage.setItem('etoile_session', JSON.stringify(currentUser));
         // Redirect employee directly to executive panel
-        if (currentUser.role === 'employee') {
-          setView('admin');
-        } else {
-          setView('customer');
+        if (location.pathname === '/login' || location.pathname === '/') {
+          if (currentUser.role === 'employee') {
+            navigate('/admin', { replace: true });
+          } else {
+            navigate('/', { replace: true });
+          }
         }
       } else {
         localStorage.removeItem('etoile_session');
@@ -370,37 +380,45 @@ export default function App() {
   }, [orders, currentUser]);
 
   const handlePlaceOrder = async (newOrderData: Omit<Order, 'id' | 'createdAt'>) => {
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const orderId = `TX-${randomSuffix}`;
-
-    const newOrder: Order = {
-      ...newOrderData,
-      id: orderId,
-      createdAt: new Date().toISOString()
-    };
-
     try {
-      const { doc, setDoc } = await import('firebase/firestore');
-      const { db, handleFirestoreError, OperationType } = await import('./lib/firebase');
+      const response = await fetch('/api/orders/place', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          customerName: newOrderData.customerName,
+          phone: newOrderData.phone,
+          address: newOrderData.address,
+          notes: newOrderData.notes || '',
+          items: newOrderData.items.map(it => ({ id: it.id, name: it.name, quantity: it.quantity })),
+          paymentMethod: newOrderData.paymentMethod,
+          customerEmail: newOrderData.customerEmail || ''
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'فشلت عملية تقديم الطلب الآمنة من جهة السيرفر.');
+      }
+
+      const responseData = await response.json();
+      const orderId = responseData.orderId;
+
+      // Save placed order ID to local storage device tracking
       try {
-        await setDoc(doc(db, 'orders', orderId), newOrder);
-      } catch (dbErr) {
-        handleFirestoreError(dbErr, OperationType.CREATE, `orders/${orderId}`);
+        const existing = localStorage.getItem('etoile_placed_order_ids');
+        const ids = existing ? JSON.parse(existing) : [];
+        if (!ids.includes(orderId)) {
+          ids.push(orderId);
+          localStorage.setItem('etoile_placed_order_ids', JSON.stringify(ids));
+        }
+      } catch (e) {
+        console.warn('Failed to save to local tracking IDs list', e);
       }
     } catch (err) {
-      console.error(err);
-    }
-
-    // Save placed order ID to local storage device tracking
-    try {
-      const existing = localStorage.getItem('etoile_placed_order_ids');
-      const ids = existing ? JSON.parse(existing) : [];
-      if (!ids.includes(orderId)) {
-        ids.push(orderId);
-        localStorage.setItem('etoile_placed_order_ids', JSON.stringify(ids));
-      }
-    } catch (e) {
-      console.warn('Failed to save to local tracking IDs list', e);
+      console.error('Error placing secure order:', err);
+      alert(err instanceof Error ? err.message : 'حدث خطأ غير متوقع أثناء إرسال طلبك.');
     }
   };
 
@@ -603,9 +621,14 @@ export default function App() {
     setCart((prev) => prev.filter((cartItem) => cartItem.menuItem.id !== itemId));
   };
 
-  // If no active session, show the glorious Auth Gate Portal
+  // If no active session, show the glorious Auth Gate Portal via secure routing
   if (!currentUser) {
-    return <AuthScreen onLoginSuccess={handleLoginSuccess} />;
+    return (
+      <Routes>
+        <Route path="/login" element={<AuthScreen onLoginSuccess={handleLoginSuccess} />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
   }
 
   return (
@@ -656,55 +679,114 @@ export default function App() {
       {/* Main View Transitions Container */}
       <main className="flex-grow relative">
         <AnimatePresence mode="wait">
-          {currentView === 'customer' ? (
-            <motion.div
-              key="customer-panel"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
-            >
-              <CustomerView 
-                cart={cart}
-                setCart={setCart}
-                isCartOpen={isCartOpen}
-                setIsCartOpen={setIsCartOpen}
-                onPlaceOrder={handlePlaceOrder}
-                menuItems={menuItems}
-                orders={orders}
-                currentUser={currentUser}
-                reviews={reviews}
-                onAddReview={handleAddReview}
-                onDeleteOrder={handleDeleteOrder}
-              />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="admin-panel"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
-            >
-              <AdminDashboard 
-                orders={orders}
-                onUpdateOrderStatus={handleUpdateOrderStatus}
-                onDeleteOrder={handleDeleteOrder}
-                menuItems={menuItems}
-                onAddMenuItem={handleAddMenuItem}
-                onUpdateMenuItem={handleUpdateMenuItem}
-                onDeleteMenuItem={handleDeleteMenuItem}
-                reviews={reviews}
-                onDeleteReview={handleDeleteReview}
-                customers={dbCustomers}
-                employees={dbEmployees}
-                onDeleteCustomer={handleDeleteCustomer}
-                onDeleteEmployee={handleDeleteEmployee}
-              />
-            </motion.div>
-          )}
+          <Routes>
+            {/* Customer Route: Home catalog */}
+            <Route 
+              path="/" 
+              element={
+                <motion.div
+                  key="customer-panel"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                >
+                  <CustomerView 
+                    cart={cart}
+                    setCart={setCart}
+                    isCartOpen={isCartOpen}
+                    setIsCartOpen={setIsCartOpen}
+                    onPlaceOrder={handlePlaceOrder}
+                    menuItems={menuItems}
+                    orders={orders}
+                    currentUser={currentUser}
+                    reviews={reviews}
+                    onAddReview={handleAddReview}
+                    onDeleteOrder={handleDeleteOrder}
+                  />
+                </motion.div>
+              } 
+            />
+
+            {/* Customer Route: Checkout Selection */}
+            <Route 
+              path="/checkout" 
+              element={
+                <motion.div
+                  key="checkout-panel"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                >
+                  <CustomerView 
+                    cart={cart}
+                    setCart={setCart}
+                    isCartOpen={isCartOpen}
+                    setIsCartOpen={setIsCartOpen}
+                    onPlaceOrder={handlePlaceOrder}
+                    menuItems={menuItems}
+                    orders={orders}
+                    currentUser={currentUser}
+                    reviews={reviews}
+                    onAddReview={handleAddReview}
+                    onDeleteOrder={handleDeleteOrder}
+                  />
+                </motion.div>
+              } 
+            />
+
+            {/* Protected Route for Admin/Executive Dashboard */}
+            <Route 
+              path="/admin" 
+              element={
+                currentUser.role === 'employee' ? (
+                  <motion.div
+                    key="admin-panel"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  >
+                    <AdminDashboard 
+                      orders={orders}
+                      onUpdateOrderStatus={handleUpdateOrderStatus}
+                      onDeleteOrder={handleDeleteOrder}
+                      menuItems={menuItems}
+                      onAddMenuItem={handleAddMenuItem}
+                      onUpdateMenuItem={handleUpdateMenuItem}
+                      onDeleteMenuItem={handleDeleteMenuItem}
+                      reviews={reviews}
+                      onDeleteReview={handleDeleteReview}
+                      customers={dbCustomers}
+                      employees={dbEmployees}
+                      onDeleteCustomer={handleDeleteCustomer}
+                      onDeleteEmployee={handleDeleteEmployee}
+                    />
+                  </motion.div>
+                ) : (
+                  // Unauthorized block - redirect safely back to homepage
+                  <Navigate to="/" replace />
+                )
+              } 
+            />
+
+            {/* Redirect if logged in visiting login page */}
+            <Route path="/login" element={<Navigate to={currentUser.role === 'employee' ? '/admin' : '/'} replace />} />
+
+            {/* Handle missing routes */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </AnimatePresence>
       </main>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
   );
 }

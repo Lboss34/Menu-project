@@ -2,8 +2,19 @@ import express from 'express';
 import path from 'node:path';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import fs from 'node:fs';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, getDocs, doc, setDoc } from 'firebase/firestore';
 
 dotenv.config();
+
+// Read config dynamically to avoid compile time failures or static resolution issues
+const fbConfigPath = path.join(process.cwd(), 'firebase-applet-config.json');
+const fbConfig = JSON.parse(fs.readFileSync(fbConfigPath, 'utf8'));
+
+// Initialize Firebase App
+const firebaseApp = initializeApp(fbConfig);
+const db = getFirestore(firebaseApp, fbConfig.firestoreDatabaseId || '(default)');
 
 const app = express();
 app.disable('x-powered-by');
@@ -379,6 +390,86 @@ app.post('/api/auth/verify-reset-code', (req, res) => {
     success: true,
     message: 'تم تأكيد هويتك ومصادقة الرمز بنجاح! تفضل بتعيين كلمة المرور الجديدة الآن.'
   });
+});
+
+// API 3.4: Secure Place Order Endpoint to prevent clients from tampering with pricing
+app.post('/api/orders/place', async (req, res) => {
+  try {
+    const { customerName, phone, address, notes, items, paymentMethod, customerEmail } = req.body;
+
+    if (!customerName || !phone || !address || !items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, error: 'فضلاً أكمل جميع البيانات المطلوبة لتقديم الطلب.' });
+    }
+
+    // 1. Fetch official menu items from Firestore to calculate authentic prices
+    const menuItemsCol = collection(db, 'menuItems');
+    const menuSnap = await getDocs(menuItemsCol);
+    const menuCatalog = new Map<string, any>();
+    menuSnap.forEach((docSnap) => {
+      menuCatalog.set(docSnap.id, docSnap.data());
+    });
+
+    // 2. Validate items structure and compute backend subtotal securely
+    let subtotal = 0;
+    const validatedItems = [];
+
+    for (const item of items) {
+      if (!item || !item.id || !item.quantity || item.quantity <= 0) {
+        return res.status(400).json({ success: false, error: 'أحد عناصر الطلب غير صالح أو الكمية غير صحيحة.' });
+      }
+
+      const dbItem = menuCatalog.get(item.id);
+      if (!dbItem) {
+        return res.status(400).json({ success: false, error: `الوجبة المطلوبة غير متوفرة في كود القائمة: ${item.name || item.id}` });
+      }
+
+      const price = Number.parseFloat(dbItem.price);
+      if (Number.isNaN(price)) {
+        return res.status(500).json({ success: false, error: 'حدث خطأ في قراءة سعر الوجبة من قاعدة البيانات.' });
+      }
+
+      const itemSubtotal = price * item.quantity;
+      subtotal += itemSubtotal;
+
+      validatedItems.push({
+        id: item.id,
+        name: dbItem.name,
+        quantity: item.quantity,
+        price: price
+      });
+    }
+
+    // 3. Calculate delivery fee & grand total securely matching frontend formula
+    const deliveryFee = subtotal > 40 ? 0 : 4.50;
+    const total = subtotal + deliveryFee;
+
+    // 4. Build secure order document with server-generated ID and status
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const orderId = `TX-${randomSuffix}`;
+
+    const newOrder = {
+      id: orderId,
+      customerName,
+      phone,
+      address,
+      notes: notes || '',
+      items: validatedItems,
+      total,
+      status: 'Pending',
+      paymentMethod,
+      customerEmail: customerEmail || '',
+      createdAt: new Date().toISOString()
+    };
+
+    // 5. Save securely to Firestore using server authorization
+    await setDoc(doc(db, 'orders', orderId), newOrder);
+
+    console.log(`[Secure Order checkout] Order ${orderId} placed successfully by customer ${sanitizeLog(customerName)}. Total: $${total.toFixed(2)}`);
+    return res.json({ success: true, orderId, order: newOrder });
+  } catch (error) {
+    console.error('Error placing secure order on server:', error);
+    return res.status(500).json({ success: false, error: 'حدث خطأ في السيرفر أثناء تسجيل طلبك بأمان، يرجى المحاولة لاحقاً.' });
+  }
 });
 
 // API 3.5: Send order on the way (transit) notification

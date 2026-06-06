@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { MenuItem, CartItem, Order, FoodCategory, Review, OrderStatus } from '../types';
 import { useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const categoryEmojis: Record<string, string> = {
   All: '🍽️',
@@ -171,6 +172,9 @@ export default function CustomerView({
   onAddReview,
   onDeleteOrder
 }: CustomerViewProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [selectedCategory, setSelectedCategory] = useState<FoodCategory | 'All'>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [isCheckoutStep, setIsCheckoutStep] = useState(false);
@@ -185,6 +189,16 @@ export default function CustomerView({
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [deliveryNotes, setDeliveryNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'Card' | 'Cash on Delivery'>('Cash on Delivery');
+
+  // Synchronize router state with checkout step
+  useEffect(() => {
+    if (location.pathname === '/checkout') {
+      setIsCheckoutStep(true);
+      setIsCartOpen(true);
+    } else {
+      setIsCheckoutStep(false);
+    }
+  }, [location.pathname, setIsCartOpen]);
 
   // Auto-feed user session fields
   useEffect(() => {
@@ -316,6 +330,9 @@ export default function CustomerView({
     setCustomerPhone('');
     setDeliveryAddress('');
     setDeliveryNotes('');
+    if (location.pathname === '/checkout') {
+      navigate('/');
+    }
   };
 
   const scrollToMenu = () => {
@@ -885,7 +902,12 @@ export default function CustomerView({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => { if (!orderCompleted) setIsCartOpen(false); }}
+              onClick={() => { 
+                if (!orderCompleted) {
+                  setIsCartOpen(false); 
+                  if (location.pathname === '/checkout') navigate('/');
+                } 
+              }}
               className="absolute inset-0 bg-[#000000a0] backdrop-blur-md"
             />
             {/* Sidebar drawer container */}
@@ -913,7 +935,10 @@ export default function CustomerView({
                       </div>
                       {!orderCompleted && (
                         <button
-                          onClick={() => setIsCartOpen(false)}
+                          onClick={() => {
+                            setIsCartOpen(false);
+                            if (location.pathname === '/checkout') navigate('/');
+                          }}
                           className="p-2 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 transition-colors text-gray-400 hover:text-white cursor-pointer"
                         >
                           <X className="w-4 h-4" />
@@ -1209,7 +1234,10 @@ export default function CustomerView({
                     </div>
 
                     <button
-                      onClick={() => setIsCheckoutStep(true)}
+                      onClick={() => {
+                        setIsCheckoutStep(true);
+                        navigate('/checkout');
+                      }}
                       className="w-full py-4 bg-[#FF6B00] hover:bg-[#FF8533] rounded-xl text-xs font-bold text-white shadow-[0_4px_20px_rgba(255,107,0,0.3)] hover:shadow-[0_4px_30px_rgba(255,107,0,0.45)] hover:scale-[1.01] transition-all cursor-pointer flex items-center justify-center space-x-2 animate-pulse"
                     >
                       <span>Proceed with Delivery</span>
