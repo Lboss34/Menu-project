@@ -487,7 +487,16 @@ app.post('/api/orders/place', async (req, res) => {
     };
 
     // 5. Save securely to Firestore using server authorization
-    await setDoc(doc(getDb(), 'orders', orderId), newOrder);
+    console.log('[Secure Order checkout] Attempting to save order to Firestore:', JSON.stringify(newOrder, null, 2));
+    try {
+      await setDoc(doc(getDb(), 'orders', orderId), newOrder);
+    } catch (saveError) {
+      console.error('[Secure Order checkout] Firestore Write Failed:', saveError);
+      if (saveError && typeof saveError === 'object') {
+        console.error('[Secure Order checkout] Error code:', (saveError as any).code, 'Message:', (saveError as any).message);
+      }
+      throw saveError;
+    }
 
     console.log(`[Secure Order checkout] Order ${orderId} placed successfully by customer ${sanitizeLog(customerName)}. Total: $${total.toFixed(2)}`);
     return res.json({ success: true, orderId, order: newOrder });

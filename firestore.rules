@@ -24,9 +24,9 @@ service cloud.firestore {
       return data.username is string && data.username.size() > 0 && data.username.size() <= 100
         && data.password is string && data.password.size() > 0 && data.password.size() <= 200
         && data.name is string && data.name.size() > 0 && data.name.size() <= 150
-        && (!data.keys().contains('phone') || (data.phone is string && data.phone.size() <= 30))
-        && (!data.keys().contains('address') || (data.address is string && data.address.size() <= 300))
-        && (!data.keys().contains('avatarUrl') || (data.avatarUrl is string && data.avatarUrl.size() <= 500));
+        && (!('phone' in data) || (data.phone is string && data.phone.size() <= 30))
+        && (!('address' in data) || (data.address is string && data.address.size() <= 300))
+        && (!('avatarUrl' in data) || (data.avatarUrl is string && data.avatarUrl.size() <= 500));
     }
 
     // Employee Validation Helper
@@ -44,10 +44,10 @@ service cloud.firestore {
         && data.total is number && data.total >= 0 && data.total <= 100000
         && data.status is string && (data.status == 'Pending' || data.status == 'Preparing' || data.status == 'Out for Delivery' || data.status == 'Delivered')
         && data.paymentMethod is string && (data.paymentMethod == 'Card' || data.paymentMethod == 'Cash on Delivery')
-        && (!data.keys().contains('notes') || (data.notes is string && data.notes.size() <= 500))
-        && (!data.keys().contains('customerEmail') || (data.customerEmail is string && data.customerEmail.size() <= 100))
-        && (!data.keys().contains('id') || (data.id is string && data.id.size() <= 128))
-        && (!data.keys().contains('createdAt') || (data.createdAt is string && data.createdAt.size() <= 128))
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 500))
+        && (!('customerEmail' in data) || (data.customerEmail is string && data.customerEmail.size() <= 100))
+        && (!('id' in data) || (data.id is string && data.id.size() <= 128))
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 128))
         && data.items is list && data.items.size() <= 100;
     }
 
@@ -57,9 +57,9 @@ service cloud.firestore {
         && data.customerName is string && data.customerName.size() > 0 && data.customerName.size() <= 150
         && data.rating is int && data.rating >= 1 && data.rating <= 5
         && data.comment is string && data.comment.size() >= 0 && data.comment.size() <= 1000
-        && (!data.keys().contains('createdAt') || (data.createdAt is string && data.createdAt.size() <= 128))
-        && (!data.keys().contains('id') || (data.id is string && data.id.size() <= 128))
-        && (!data.keys().contains('items') || (data.items is list && data.items.size() <= 100));
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 128))
+        && (!('id' in data) || (data.id is string && data.id.size() <= 128))
+        && (!('items' in data) || (data.items is list && data.items.size() <= 100));
     }
 
     // MenuItem Validation Helper
@@ -73,8 +73,8 @@ service cloud.firestore {
         && data.spicy is bool
         && data.vegan is bool
         && data.popular is bool
-        && (!data.keys().contains('description') || (data.description is string && data.description.size() <= 1000))
-        && (!data.keys().contains('rating') || (data.rating is number));
+        && (!('description' in data) || (data.description is string && data.description.size() <= 1000))
+        && (!('rating' in data) || (data.rating is number));
     }
 
     // Customers collection rules
