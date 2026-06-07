@@ -95,6 +95,58 @@ function sanitizeLog(val: any): string {
   return str.replace(/[\r\n]/g, '_');
 }
 
+// Sanitize text inputs (name, address, notes) to prevent HTML/XSS/SQL injection and UI Spoofing
+function sanitizeField(input: any, isMultiline: boolean = false): string {
+  if (input === undefined || input === null) return '';
+  let text = typeof input === 'string' ? input : String(input);
+
+  // 1. Remove dangerous tag/script delimiters (prevent HTML markup injection completely)
+  text = text.replace(/[<>\/\\]/g, '');
+
+  // 2. Standardize/clean spaces & newline exploitation
+  if (!isMultiline) {
+    // Remove all types of spacing control characters completely for single-line fields
+    text = text.replace(/[\r\n\t]+/g, ' ');
+    text = text.replace(/\s+/g, ' ');
+  } else {
+    // Normalise carriage returns/newlines for multiline blocks
+    text = text.replace(/\r/g, '');
+    // Collapse 3 or more consecutive linebreaks down to max 2 linebreaks to avoid giant spacing layout attacks
+    text = text.replace(/\n{3,}/g, '\n\n');
+    // Collapse consecutive vertical spacing
+    text = text.replace(/[ \t]{2,}/g, ' ');
+  }
+
+  // 3. Strip or transform common spoofing strings used in dashboard/system impersonation attacks
+  const suspiciousSystems = [
+    /system\s*error/gi,
+    /hacked/gi,
+    /database\s*corrupted/gi,
+    /critical\s*error/gi,
+    /system\s*alert/gi,
+    /warning/gi,
+    /alert/gi,
+    /admin/gi,
+    /root/gi,
+    /backdoor/gi,
+    /exploit/gi,
+    /spy/gi,
+    /سستم/gi,
+    /اختراق/gi,
+    /خطأ\s*في\s*النظام/gi,
+    /تنبيه\s*مبكر/gi,
+    /تم\s*التهكير/gi,
+    /تنبيه\s*أمني/gi,
+    /⚠️/g
+  ];
+
+  for (const pattern of suspiciousSystems) {
+    text = text.replace(pattern, '[نص مصفى أمنياً - Filtered]');
+  }
+
+  return text.trim();
+}
+
 const PORT = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json());
@@ -422,8 +474,14 @@ app.post('/api/orders/place', async (req, res) => {
   try {
     const { customerName, phone, address, notes, items, paymentMethod, customerEmail } = req.body;
 
-    if (!customerName || !phone || !address || !items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ success: false, error: 'فضلاً أكمل جميع البيانات المطلوبة لتقديم الطلب.' });
+    // Apply strict sanitization filters to prevent UI Spoofing / Impersonation & Content Injection attacks
+    const sanitizedCustomerName = sanitizeField(customerName, false);
+    const sanitizedAddress = sanitizeField(address, false);
+    const sanitizedNotes = sanitizeField(notes, true);
+    const sanitizedPhone = sanitizeField(phone, false).replace(/[^\d+()-\s]/g, ''); // Ensure phone numbers only keep numeric and common separator values
+
+    if (!sanitizedCustomerName || !sanitizedPhone || !sanitizedAddress || !items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, error: 'فضلاً أكمل جميع البيانات المطلوبة لتقديم الطلب بشكل صالح.' });
     }
 
     // 1. Fetch official menu items from Firestore to calculate authentic prices
@@ -474,10 +532,10 @@ app.post('/api/orders/place', async (req, res) => {
 
     const newOrder = {
       id: orderId,
-      customerName,
-      phone,
-      address,
-      notes: notes || '',
+      customerName: sanitizedCustomerName,
+      phone: sanitizedPhone,
+      address: sanitizedAddress,
+      notes: sanitizedNotes,
       items: validatedItems,
       total,
       status: 'Pending',
