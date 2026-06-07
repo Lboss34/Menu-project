@@ -228,6 +228,9 @@ export default function CustomerView({
   const myOrders = useMemo(() => {
     if (!currentUser) return [];
     
+    // If the logged-in user is an employee/admin, do not display active tracking lists in "المعاينة" (Preview)
+    if (currentUser.role === 'employee') return [];
+    
     // Retrieve device-specific order tracking IDs
     let localSavedIds: string[] = [];
     try {
