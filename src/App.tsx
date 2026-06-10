@@ -11,7 +11,6 @@ import CustomerView from './components/CustomerView';
 import AdminDashboard from './components/AdminDashboard';
 import AuthScreen from './components/AuthScreen';
 import AccountSettingsModal from './components/AccountSettingsModal';
-import PaymentCallback from './components/PaymentCallback';
 import { CartItem, Order, OrderStatus, MenuItem, Review } from './types';
 import { INITIAL_ORDERS, MENU_ITEMS, INITIAL_REVIEWS } from './data';
 
@@ -166,9 +165,6 @@ function AppContent() {
           const ords: Order[] = [];
           snapshot.forEach((doc) => {
             const data = doc.data() as Order;
-            if (data.paymentMethod === 'Card' && !data.paid && data.status === 'Pending') {
-              return;
-            }
             ords.push(data);
           });
           // Sort descending by date
@@ -748,21 +744,6 @@ function AppContent() {
                   />
                 </motion.div>
               } 
-            />
-
-            {/* Tap Payments Callback Route */}
-            <Route 
-              path="/payment-callback" 
-              element={
-                <motion.div
-                  key="payment-callback-panel"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0 }}
-                >
-                  <PaymentCallback />
-                </motion.div>
-              }
             />
 
             {/* Protected Route for Admin/Executive Dashboard */}

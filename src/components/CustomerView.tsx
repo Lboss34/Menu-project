@@ -16,7 +16,6 @@ import {
   Sparkles, 
   Flame, 
   ShieldCheck, 
-  CreditCard, 
   Truck, 
   CheckCircle, 
   ArrowLeft,
@@ -182,6 +181,7 @@ export default function CustomerView({
   const [lastPlacedOrderId, setLastPlacedOrderId] = useState('');
   const [addingItemId, setAddingItemId] = useState<string | null>(null);
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+  const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
 
   // Checkout Form State - defaulted to Cash on Delivery
   const [customerName, setCustomerName] = useState('');
@@ -326,12 +326,6 @@ export default function CustomerView({
     setIsSubmittingOrder(false);
 
     if (success) {
-      if (paymentMethod === 'Card') {
-        // For card payment to Tap gateway redirect, clear basket first
-        setCart([]);
-        return;
-      }
-
       setLastPlacedOrderId(newId);
       setOrderCompleted(true);
       setIsCheckoutStep(false);
@@ -619,6 +613,42 @@ export default function CustomerView({
                         موقع التوصيل الفاخر: <strong className="text-white">{order.address}</strong>
                       </div>
                     </div>
+
+                    {order.status === 'Pending' && (
+                      <div className="flex justify-end pt-1">
+                        {cancellingOrderId === order.id ? (
+                          <div className="flex items-center space-x-2 space-x-reverse bg-rose-500/10 border border-rose-500/25 p-2 rounded-xl animate-fade-in">
+                            <span className="text-[11px] text-rose-400 font-medium">هل تريد إلغاء هذا الطلب الفاخر بالكامل؟</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onDeleteOrder(order.id);
+                                setCancellingOrderId(null);
+                              }}
+                              className="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[10.5px] font-bold transition-all cursor-pointer"
+                            >
+                              نعم، إلغاء الطلب
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setCancellingOrderId(null)}
+                              className="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-gray-400 text-[10.5px] font-medium hover:text-white transition-all cursor-pointer"
+                            >
+                              تراجع
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setCancellingOrderId(order.id)}
+                            className="px-4 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/15 text-rose-400 border border-rose-500/20 hover:border-rose-500/35 text-[11px] font-bold transition-all cursor-pointer flex items-center space-x-1.5 space-x-reverse"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                            <span>إلغاء الطلب بالكامل (Cancel Order)</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
 
                     {order.status === 'Delivered' && (
                       <div className="relative overflow-hidden rounded-2xl border border-dashed border-emerald-500/30 bg-emerald-500/5 p-5 shadow-[inset_0_0_20px_rgba(16,185,129,0.05)]">
@@ -971,40 +1001,42 @@ export default function CustomerView({
                     <motion.div 
                       initial={{ scale: 0.95, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      className="pt-10 text-center flex flex-col items-center justify-center space-y-6"
+                      className="pt-10 text-center flex flex-col items-center justify-center space-y-6 animate-fade-in"
                     >
-                      <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-[#FF6B00] to-[#FF9D00] p-[1px] flex items-center justify-center shadow-[0_0_25px_rgba(255,107,0,0.4)]">
+                      <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 p-[1px] flex items-center justify-center shadow-[0_0_25px_rgba(16,185,129,0.4)]">
                         <div className="w-full h-full bg-[#050505] rounded-full flex items-center justify-center">
-                          <CheckCircle className="w-10 h-10 text-white" />
+                          <CheckCircle className="w-10 h-10 text-emerald-400" />
                         </div>
                       </div>
                       
                       <div className="space-y-2">
-                        <span className="font-mono text-[10px] text-[#FF6B00] uppercase font-bold tracking-[0.2em]">Order Confirmed</span>
-                        <h3 className="font-display text-2xl font-extrabold text-white">Chef owner notified!</h3>
+                        <span className="font-mono text-[10px] text-emerald-400 uppercase font-bold tracking-[0.2em] bg-emerald-500/10 px-3 py-1 rounded-full">
+                          تم الطلب بنجاح • Order Confirmed
+                        </span>
+                        <h3 className="font-display text-xl font-extrabold text-white">تم إرسال طلبك الفاخر المطبخ بنجاح!</h3>
                         <p className="text-gray-400 text-xs max-w-xs mx-auto leading-relaxed">
-                          Your order has been logged instantly in our system. You can switch to the <strong className="text-[#FF6B00] font-bold">Admin Panel</strong> to track this order live!
+                          تم استقبال وتسجيل طلبك بنجاح في أنظمتنا. يمكنك تتبع حالة طلبك في نافذة التتبع بالصفحة الرئيسية والتحكم به.
                         </p>
                       </div>
 
-                      <div className="p-4 bg-white/5 border border-white/10 rounded-xl w-full text-left">
+                      <div className="p-4 bg-white/5 border border-white/10 rounded-xl w-full text-right" dir="rtl">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-[10px] text-gray-500 font-mono">Invoice Identifier</span>
+                          <span className="text-[10px] text-gray-500 font-mono">معرف الفاتورة الفاخرة</span>
                           <span className="text-xs font-mono font-bold text-white text-glow-orange">{lastPlacedOrderId}</span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-gray-500 font-mono">Status Tracker</span>
-                          <span className="bg-[#FF6B00]/10 border border-[#FF6B00]/20 text-[#FF6B00] text-[10px] font-bold px-2 py-0.5 rounded-full">
-                            Pending Approval
+                          <span className="text-[10px] text-gray-500 font-mono">مستوى تتبع الحالة</span>
+                          <span className="bg-[#FF6B00]/10 border border-[#FF6B00]/25 text-[#FF6B00] text-[10px] font-bold px-2 py-0.5 rounded-full font-sans">
+                            قيد الانتظار والمراجعة
                           </span>
                         </div>
                       </div>
 
                       <button
                         onClick={handleClosedSuccess}
-                        className="w-full py-3.5 bg-[#FF6B00] hover:bg-[#FF8533] text-white rounded-xl text-xs font-bold shadow-[0_4px_15px_rgba(255,107,0,0.25)] hover:shadow-[0_4px_25px_rgba(255,107,0,0.4)] transition-all cursor-pointer"
+                        className="w-full py-3.5 bg-gradient-to-r from-[#FF6B00] to-orange-500 hover:from-[#FF8533] hover:to-orange-400 text-white rounded-xl text-xs font-bold shadow-[0_4px_15px_rgba(255,107,0,0.25)] hover:shadow-[0_4px_25px_rgba(255,107,0,0.4)] transition-all cursor-pointer font-sans"
                       >
-                        Fulfill Another Desire
+                        العودة لقائمة الوجبات الفاخرة
                       </button>
                     </motion.div>
                   ) : isCheckoutStep ? (
@@ -1096,32 +1128,10 @@ export default function CustomerView({
 
                         {/* Payment Selection */}
                         <div>
-                          <span className="block text-[10px] font-mono text-gray-400 uppercase tracking-wider mb-1.5 font-bold">Secure Payment Method</span>
-                          <div className="grid grid-cols-2 gap-3">
-                            <button
-                               type="button"
-                               onClick={() => setPaymentMethod('Card')}
-                               className={`p-3 rounded-xl border text-xs font-semibold flex flex-col items-center justify-center space-y-1.5 transition-all cursor-pointer ${
-                                 paymentMethod === 'Card'
-                                   ? 'bg-white/10 border-[#FF6B00] text-white shadow-lg'
-                                   : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
-                               }`}
-                            >
-                              <CreditCard className="w-4 h-4" />
-                              <span>مدى / Visa / Apple Pay</span>
-                            </button>
-                            <button
-                               type="button"
-                               onClick={() => setPaymentMethod('Cash on Delivery')}
-                               className={`p-3 rounded-xl border text-xs font-semibold flex flex-col items-center justify-center space-y-1.5 transition-all cursor-pointer ${
-                                 paymentMethod === 'Cash on Delivery'
-                                   ? 'bg-white/10 border-[#FF6B00] text-white shadow-lg'
-                                   : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
-                               }`}
-                            >
-                              <Truck className="w-4 h-4" />
-                              <span>Cash on Arrival</span>
-                            </button>
+                          <span className="block text-[10px] font-mono text-gray-400 uppercase tracking-wider mb-1.5 font-bold">طريقة الدفع التلقائية</span>
+                          <div className="p-3.5 rounded-xl border border-white/10 bg-white/5 text-xs text-white flex items-center space-x-2 space-x-reverse font-medium">
+                            <Truck className="w-4 h-4 text-[#FF6B00]" />
+                            <span>الدفع نقداً بعد الاستلام (Cash on Arrival)</span>
                           </div>
                         </div>
                       </div>
@@ -1147,7 +1157,7 @@ export default function CustomerView({
                         disabled={isSubmittingOrder}
                         className="w-full py-4 bg-[#FF6B00] hover:bg-[#FF8533] disabled:bg-gray-700 disabled:cursor-not-allowed rounded-xl text-xs font-bold text-white shadow-[0_4px_20px_rgba(255,107,0,0.3)] hover:shadow-[0_4px_30px_rgba(255,107,0,0.45)] transition-all cursor-pointer block text-center"
                       >
-                        {isSubmittingOrder ? 'جاري تحويلك لبوابة الدفع...' : 'Transmit Order to Kitchen'}
+                        {isSubmittingOrder ? 'جاري إرسال طلبك الفاخر للمطبخ...' : 'Transmit Order to Kitchen'}
                       </button>
                     </motion.form>
                   ) : (
