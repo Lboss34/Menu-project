@@ -42,7 +42,7 @@ interface CustomerViewProps {
   setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
   isCartOpen: boolean;
   setIsCartOpen: (open: boolean) => void;
-  onPlaceOrder: (order: Omit<Order, 'id' | 'createdAt'>) => void;
+  onPlaceOrder: (order: Omit<Order, 'id' | 'createdAt'>) => Promise<boolean>;
   menuItems: MenuItem[];
   orders: Order[];
   currentUser: { 
@@ -181,6 +181,7 @@ export default function CustomerView({
   const [orderCompleted, setOrderCompleted] = useState(false);
   const [lastPlacedOrderId, setLastPlacedOrderId] = useState('');
   const [addingItemId, setAddingItemId] = useState<string | null>(null);
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
 
   // Checkout Form State - defaulted to Cash on Delivery
   const [customerName, setCustomerName] = useState('');
@@ -293,9 +294,11 @@ export default function CustomerView({
   const deliveryFee = subtotal > 40 ? 0 : 4.50;
   const grandTotal = subtotal + deliveryFee;
 
-  const handleCheckoutSubmit = (e: React.FormEvent) => {
+  const handleCheckoutSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customerName || !customerPhone || !deliveryAddress) return;
+    if (!customerName || !customerPhone || !deliveryAddress || isSubmittingOrder) return;
+
+    setIsSubmittingOrder(true);
 
     const orderItems = cart.map(item => ({
       id: item.menuItem.id,
@@ -308,7 +311,7 @@ export default function CustomerView({
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const newId = `TX-${randomSuffix}`;
     
-    onPlaceOrder({
+    const success = await onPlaceOrder({
       customerName,
       phone: customerPhone,
       address: deliveryAddress,
@@ -320,10 +323,20 @@ export default function CustomerView({
       customerEmail: customerEmail.trim() || currentUser?.username || ''
     });
 
-    setLastPlacedOrderId(newId);
-    setOrderCompleted(true);
-    setIsCheckoutStep(false);
-    setCart([]); // Clear cart
+    setIsSubmittingOrder(false);
+
+    if (success) {
+      if (paymentMethod === 'Card') {
+        // For card payment to Tap gateway redirect, clear basket first
+        setCart([]);
+        return;
+      }
+
+      setLastPlacedOrderId(newId);
+      setOrderCompleted(true);
+      setIsCheckoutStep(false);
+      setCart([]); // Clear cart
+    }
   };
 
   const handleClosedSuccess = () => {
@@ -1095,7 +1108,7 @@ export default function CustomerView({
                                }`}
                             >
                               <CreditCard className="w-4 h-4" />
-                              <span>Crypto / Card</span>
+                              <span>مدى / Visa / Apple Pay</span>
                             </button>
                             <button
                                type="button"
@@ -1131,9 +1144,10 @@ export default function CustomerView({
 
                       <button
                         type="submit"
-                        className="w-full py-4 bg-[#FF6B00] hover:bg-[#FF8533] rounded-xl text-xs font-bold text-white shadow-[0_4px_20px_rgba(255,107,0,0.3)] hover:shadow-[0_4px_30px_rgba(255,107,0,0.45)] transition-all cursor-pointer block text-center"
+                        disabled={isSubmittingOrder}
+                        className="w-full py-4 bg-[#FF6B00] hover:bg-[#FF8533] disabled:bg-gray-700 disabled:cursor-not-allowed rounded-xl text-xs font-bold text-white shadow-[0_4px_20px_rgba(255,107,0,0.3)] hover:shadow-[0_4px_30px_rgba(255,107,0,0.45)] transition-all cursor-pointer block text-center"
                       >
-                        Transmit Order to Kitchen
+                        {isSubmittingOrder ? 'جاري تحويلك لبوابة الدفع...' : 'Transmit Order to Kitchen'}
                       </button>
                     </motion.form>
                   ) : (

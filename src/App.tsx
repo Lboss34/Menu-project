@@ -11,6 +11,7 @@ import CustomerView from './components/CustomerView';
 import AdminDashboard from './components/AdminDashboard';
 import AuthScreen from './components/AuthScreen';
 import AccountSettingsModal from './components/AccountSettingsModal';
+import PaymentCallback from './components/PaymentCallback';
 import { CartItem, Order, OrderStatus, MenuItem, Review } from './types';
 import { INITIAL_ORDERS, MENU_ITEMS, INITIAL_REVIEWS } from './data';
 
@@ -379,7 +380,7 @@ function AppContent() {
     setPrevOrders(orders);
   }, [orders, currentUser]);
 
-  const handlePlaceOrder = async (newOrderData: Omit<Order, 'id' | 'createdAt'>) => {
+  const handlePlaceOrder = async (newOrderData: Omit<Order, 'id' | 'createdAt'>): Promise<boolean> => {
     try {
       const response = await fetch('/api/orders/place', {
         method: 'POST',
@@ -416,9 +417,18 @@ function AppContent() {
       } catch (e) {
         console.warn('Failed to save to local tracking IDs list', e);
       }
+
+      // If the backend sent a payment url (Tap Payments), redirect user immediately
+      if (responseData.paymentUrl) {
+        window.location.href = responseData.paymentUrl;
+        return true;
+      }
+
+      return true;
     } catch (err) {
       console.error('Error placing secure order:', err);
       alert(err instanceof Error ? err.message : 'حدث خطأ غير متوقع أثناء إرسال طلبك.');
+      return false;
     }
   };
 
@@ -734,6 +744,21 @@ function AppContent() {
                   />
                 </motion.div>
               } 
+            />
+
+            {/* Tap Payments Callback Route */}
+            <Route 
+              path="/payment-callback" 
+              element={
+                <motion.div
+                  key="payment-callback-panel"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <PaymentCallback />
+                </motion.div>
+              }
             />
 
             {/* Protected Route for Admin/Executive Dashboard */}

@@ -469,6 +469,139 @@ app.post('/api/auth/verify-reset-code', (req, res) => {
   });
 });
 
+// Helper: Create Tap Payments Charge
+async function createTapCharge(orderData: {
+  amount: number;
+  currency: string;
+  customerName: string;
+  customerEmail: string;
+  phone: string;
+  orderId: string;
+  redirectUrl: string;
+  postUrl: string;
+}) {
+  const secretKey = process.env.TAP_SECRET_KEY;
+  if (!secretKey) {
+    throw new Error("TAP_SECRET_KEY context environment variable is missing on the server.");
+  }
+
+  // Handle first and last name extraction nicely
+  const nameParts = orderData.customerName.trim().split(/\s+/);
+  const firstName = nameParts[0] || 'Customer';
+  const lastName = nameParts.slice(1).join(' ') || 'Customer';
+
+  // Format Saudi/Gulf phone number
+  let countryCode = '966';
+  let number = orderData.phone.replace(/[^\d]/g, ''); // strip any non-digit chars
+
+  if (number.startsWith('966')) {
+    number = number.substring(3);
+  } else if (number.startsWith('00966')) {
+    number = number.substring(5);
+  } else if (number.startsWith('05')) {
+    number = number.substring(1); // remove leading zero
+  }
+
+  const payload = {
+    amount: parseFloat(orderData.amount.toFixed(2)),
+    currency: orderData.currency || 'SAR',
+    threeDSecure: true,
+    save_card: false,
+    description: `Payment for Order ${orderData.orderId} - L'Étoile Bite`,
+    statement_descriptor: "LEtoile Bite",
+    metadata: {
+      orderId: orderData.orderId
+    },
+    reference: {
+      order: orderData.orderId
+    },
+    customer: {
+      first_name: firstName,
+      last_name: lastName,
+      email: orderData.customerEmail || 'customer@etoilebite.com',
+      phone: {
+        country_code: countryCode,
+        number: number || '555555555'
+      }
+    },
+    source: {
+      id: "src_all"
+    },
+    redirect: {
+      url: orderData.redirectUrl
+    },
+    post: {
+      url: orderData.postUrl
+    }
+  };
+
+  console.log('[Tap API] Creating payment request payload:', JSON.stringify(payload, null, 2));
+
+  const response = await fetch('https://api.tap.company/v2/charges', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${secretKey}`,
+      'Content-Type': 'application/json',
+      'accept': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('[Tap API] Error response:', response.status, errorText);
+    throw new Error(`Tap API Error [${response.status}]: ${errorText}`);
+  }
+
+  return await response.json();
+}
+
+// Webhook/Notification webhook from Tap Payments
+app.post('/api/payment/webhook', async (req, res) => {
+  console.log('[Tap Webhook] Payload received:', JSON.stringify(req.body, null, 2));
+  try {
+    const { id, status, metadata, reference } = req.body;
+    const orderId = metadata?.orderId || reference?.order;
+
+    if (!orderId) {
+      console.warn('[Tap Webhook] No valid orderId received in payload.');
+      return res.status(400).json({ error: 'Missing order reference' });
+    }
+
+    console.log(`[Tap Webhook] Order: ${orderId}, Status: ${status}, ChargeId: ${id}`);
+
+    // If status is CAPTURED, update the orders collection to paid: true in Firestore
+    if (status === 'CAPTURED') {
+      console.log(`[Tap Webhook] Payment Captured successfully. Updating order ${orderId} in Firestore...`);
+      await setDoc(doc(getDb(), 'orders', orderId), { 
+        paid: true, 
+        tapChargeId: id,
+        paymentStatusDetail: 'CAPTURED'
+      }, { merge: true });
+
+      return res.json({ success: true, message: `Order ${orderId} marked paid: true dynamically.` });
+    } else {
+      console.log(`[Tap Webhook] Payment status received: ${status}. Updating order ${orderId} with status detail...`);
+      await setDoc(doc(getDb(), 'orders', orderId), { 
+        tapChargeId: id,
+        paymentStatusDetail: status
+      }, { merge: true });
+
+      return res.json({ success: true, message: `Updated order state to reflect status ${status}` });
+    }
+  } catch (error: any) {
+    console.error('[Tap Webhook] Error processing Tap webhook update:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// Express bridge for payment callback route redirection back to client HashRouter
+app.get('/payment-callback', (req, res) => {
+  const { orderId } = req.query;
+  console.log(`[Payment Callback Redirect] Redirecting user back to SPA HashRouter for order: ${orderId}`);
+  return res.redirect(`/#/payment-callback?orderId=${orderId}`);
+});
+
 // API 3.4: Secure Place Order Endpoint to prevent clients from tampering with pricing
 app.post('/api/orders/place', async (req, res) => {
   try {
@@ -530,7 +663,7 @@ app.post('/api/orders/place', async (req, res) => {
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const orderId = `TX-${randomSuffix}`;
 
-    const newOrder = {
+    const newOrder: any = {
       id: orderId,
       customerName: sanitizedCustomerName,
       phone: sanitizedPhone,
@@ -541,26 +674,71 @@ app.post('/api/orders/place', async (req, res) => {
       status: 'Pending',
       paymentMethod,
       customerEmail: customerEmail || '',
+      paid: false,
       createdAt: new Date().toISOString()
     };
 
-    // 5. Save securely to Firestore using server authorization
-    console.log('[Secure Order checkout] Attempting to save order to Firestore:', JSON.stringify(newOrder, null, 2));
-    try {
-      await setDoc(doc(getDb(), 'orders', orderId), newOrder);
-    } catch (saveError) {
-      console.error('[Secure Order checkout] Firestore Write Failed:', saveError);
-      if (saveError && typeof saveError === 'object') {
-        console.error('[Secure Order checkout] Error code:', (saveError as any).code, 'Message:', (saveError as any).message);
-      }
-      throw saveError;
-    }
+    if (paymentMethod === 'Card') {
+      const redirectUrl = `${req.protocol}://${req.get('host')}/payment-callback?orderId=${orderId}`;
+      const postUrl = `${req.protocol}://${req.get('host')}/api/payment/webhook`;
 
-    console.log(`[Secure Order checkout] Order ${orderId} placed successfully by customer ${sanitizeLog(customerName)}. Total: $${total.toFixed(2)}`);
-    return res.json({ success: true, orderId, order: newOrder });
-  } catch (error) {
+      console.log(`[Secure Order checkout] Electronic checkout chosen. Contacting Tap Payments...`);
+      try {
+        const chargeData: any = await createTapCharge({
+          amount: total,
+          currency: 'SAR',
+          customerName: sanitizedCustomerName,
+          customerEmail: customerEmail || '',
+          phone: sanitizedPhone,
+          orderId,
+          redirectUrl,
+          postUrl
+        });
+
+        newOrder.tapChargeId = chargeData.id;
+
+        // Save order structure to Firestore
+        await setDoc(doc(getDb(), 'orders', orderId), newOrder);
+
+        const paymentUrl = chargeData.transaction?.url || chargeData.redirect?.url;
+        if (!paymentUrl) {
+          throw new Error('Tap API returned success but did not specify redirect/transaction url.');
+        }
+
+        console.log(`[Secure Order checkout] Order ${orderId} saved. Client should redirect to paymentUrl: ${paymentUrl}`);
+        return res.json({ 
+          success: true, 
+          orderId, 
+          paymentUrl, 
+          order: newOrder 
+        });
+
+      } catch (chargeError: any) {
+        console.error('[Secure Order checkout] Tap Charge generation failed:', chargeError.message);
+        return res.status(500).json({ 
+          success: false, 
+          error: `فشل نظام الدفع الإلكتروني حالياً. التفاصيل: ${chargeError.message}` 
+        });
+      }
+    } else {
+      // 5. Save cash order securely to Firestore using server authorization
+      console.log('[Secure Order checkout] Cash on Delivery selected. Saving order to Firestore:', JSON.stringify(newOrder, null, 2));
+      try {
+        await setDoc(doc(getDb(), 'orders', orderId), newOrder);
+      } catch (saveError) {
+        console.error('[Secure Order checkout] Firestore Write Failed:', saveError);
+        if (saveError && typeof saveError === 'object') {
+          console.error('[Secure Order checkout] Error code:', (saveError as any).code, 'Message:', (saveError as any).message);
+        }
+        throw saveError;
+      }
+
+      console.log(`[Secure Order checkout] Order ${orderId} placed successfully by customer ${sanitizeLog(customerName)}. Total: $${total.toFixed(2)}`);
+      return res.json({ success: true, orderId, order: newOrder });
+    }
+  } catch (error: any) {
     console.error('Error placing secure order on server:', error);
-    return res.status(500).json({ success: false, error: 'حدث خطأ في السيرفر أثناء تسجيل طلبك بأمان، يرجى المحاولة لاحقاً.' });
+    return res.status(500).json({ success: false, error: `حدث خطأ في السيرفر أثناء تسجيل طلبك بأمان، يرجى المحاولة لاحقاً. التفاصيل: ${error.message}` });
   }
 });
 

@@ -48,6 +48,8 @@ service cloud.firestore {
         && (!('customerEmail' in data) || (data.customerEmail is string && data.customerEmail.size() <= 100))
         && (!('id' in data) || (data.id is string && data.id.size() <= 128))
         && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 128))
+        && (!('paid' in data) || (data.paid is bool))
+        && (!('tapChargeId' in data) || (data.tapChargeId is string && data.tapChargeId.size() <= 128))
         && data.items is list && data.items.size() <= 100;
     }
 
