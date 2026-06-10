@@ -45,6 +45,9 @@ export interface Order {
   createdAt: string; // ISO String or clean relative display
   paymentMethod: 'Card' | 'Cash on Delivery';
   customerEmail?: string;
+  paid?: boolean;
+  tapChargeId?: string;
+  paymentStatusDetail?: string;
 }
 
 export interface SalesStats {

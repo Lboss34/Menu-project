@@ -686,7 +686,7 @@ app.post('/api/orders/place', async (req, res) => {
       try {
         const chargeData: any = await createTapCharge({
           amount: total,
-          currency: 'SAR',
+          currency: 'USD',
           customerName: sanitizedCustomerName,
           customerEmail: customerEmail || '',
           phone: sanitizedPhone,

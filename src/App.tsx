@@ -165,7 +165,11 @@ function AppContent() {
         unsubscribe = onSnapshot(colRef, (snapshot) => {
           const ords: Order[] = [];
           snapshot.forEach((doc) => {
-            ords.push(doc.data() as Order);
+            const data = doc.data() as Order;
+            if (data.paymentMethod === 'Card' && !data.paid) {
+              return;
+            }
+            ords.push(data);
           });
           // Sort descending by date
           ords.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
