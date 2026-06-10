@@ -595,6 +595,80 @@ app.post('/api/payment/webhook', async (req, res) => {
   }
 });
 
+// GET /api/payment/verify - Secure verification and sync of Tap status
+app.get('/api/payment/verify', async (req, res) => {
+  const { orderId } = req.query;
+  if (!orderId || typeof orderId !== 'string') {
+    return res.status(400).json({ error: 'من فضلك أرسل معرف الطلب للتحقق.' });
+  }
+
+  try {
+    const { getDoc, doc } = await import('firebase/firestore');
+    const orderDocSnap = await getDoc(doc(getDb(), 'orders', orderId));
+    if (!orderDocSnap.exists()) {
+      return res.status(410).json({ error: 'عذراً، لم يتم العثور على هذا الطلب في النظام.' });
+    }
+
+    const orderData = orderDocSnap.data() as any;
+    
+    // If already marked as paid
+    if (orderData.paid) {
+      return res.json({ success: true, status: 'CAPTURED', paid: true });
+    }
+
+    const chargeId = orderData.tapChargeId;
+    if (!chargeId) {
+      return res.status(400).json({ error: 'هذا الطلب لم يتم سداده عبر البطاقة أو أنه لا يحتوي على معرف الدفع.' });
+    }
+
+    // Reach out to Tap api securely to get actual charge status
+    const secretKey = process.env.TAP_SECRET_KEY;
+    if (!secretKey) {
+      throw new Error("TAP_SECRET_KEY configuration environment variable is missing on the server.");
+    }
+
+    console.log(`[Tap API Verification] Querying Tap Company for charge: ${chargeId}`);
+    const response = await fetch(`https://api.tap.company/v2/charges/${chargeId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${secretKey}`,
+        'accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Tap API Verification] Failed to poll status from Tap API:', response.status, errorText);
+      return res.status(502).json({ error: `فشل جلب تفاصيل المعاملة من بوابة الدفع: [${response.status}]` });
+    }
+
+    const chargeInfo = await response.json();
+    const tapStatus = chargeInfo.status;
+    console.log(`[Tap API Verification] Charge status retrieved: ${tapStatus} for order: ${orderId}`);
+
+    if (tapStatus === 'CAPTURED') {
+      console.log(`[Tap API Verification] Verified CAPTURED. Syncing Firestore to paid: true...`);
+      await setDoc(doc(getDb(), 'orders', orderId), { 
+        paid: true, 
+        paymentStatusDetail: 'CAPTURED'
+      }, { merge: true });
+
+      return res.json({ success: true, status: 'CAPTURED', paid: true });
+    } else {
+      console.log(`[Tap API Verification] Non-captured status: ${tapStatus}`);
+      await setDoc(doc(getDb(), 'orders', orderId), { 
+        paymentStatusDetail: tapStatus
+      }, { merge: true });
+
+      return res.json({ success: true, status: tapStatus, paid: false });
+    }
+
+  } catch (error: any) {
+    console.error('[Tap API Verification] Unknown check crash:', error);
+    return res.status(500).json({ error: error.message || 'حدث خطأ داخلي أثناء التحقق من الدفع.' });
+  }
+});
+
 // Express bridge for payment callback route redirection back to client HashRouter
 app.get('/payment-callback', (req, res) => {
   const { orderId } = req.query;

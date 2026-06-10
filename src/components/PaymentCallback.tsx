@@ -22,6 +22,16 @@ export default function PaymentCallback() {
       return;
     }
 
+    // Securely query server payment verify endpoint directly to fetch latest state
+    const runVerification = async () => {
+      try {
+        await fetch(`/api/payment/verify?orderId=${orderId}`);
+      } catch (err) {
+        console.warn('[PaymentCallback] Direct payment verification fetch error:', err);
+      }
+    };
+    runVerification();
+
     // Set a timeout of 15 seconds to abort waiting if the webhook takes too long
     const timeoutId = setTimeout(() => {
       setLoading(false);

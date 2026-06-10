@@ -166,7 +166,7 @@ function AppContent() {
           const ords: Order[] = [];
           snapshot.forEach((doc) => {
             const data = doc.data() as Order;
-            if (data.paymentMethod === 'Card' && !data.paid) {
+            if (data.paymentMethod === 'Card' && !data.paid && data.status === 'Pending') {
               return;
             }
             ords.push(data);
